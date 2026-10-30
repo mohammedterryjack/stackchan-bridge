@@ -159,7 +159,7 @@ def _read_impl(chunk_id: str) -> str:
         f"id: {rid}\n"
         f"zine: {zin} issue={issue} article={article} chunk={chunk_idx}\n"
         f"title: {title}{auth}\n"
-        f"source: {url}\n\n"
+        "\n"
         f"{body}"
     )
     if len(out.encode("utf-8")) > 4500:
@@ -171,7 +171,7 @@ def _read_impl(chunk_id: str) -> str:
             f"id: {rid}\n"
             f"zine: {zin} issue={issue} article={article} chunk={chunk_idx}\n"
             f"title: {title}{auth}\n"
-            f"source: {url}\n\n"
+            "\n"
             f"{body}"
         )
     return out
