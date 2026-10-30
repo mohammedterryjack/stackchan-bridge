@@ -14,7 +14,7 @@ Dockerised MCP bridge connecting an M5Stack Stack-chan (Xiaozhi cloud) to 13 loc
 - arxiv: arxiv_search, arxiv_read, arxiv_abstract
 - zines: zine_search, zine_read
 - darknet-diaries: darknet_episodes, darknet_episode, darknet_transcript, darknet_find
-- prayer-times: prayer_times, next_prayer (city and country required, no default)
+- prayer-times: prayer_times, next_prayer, prayer_alarms (city and country required, no default)
 - quran-hadith: read_quran, search_quran, get_hadith, random_hadith
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
 

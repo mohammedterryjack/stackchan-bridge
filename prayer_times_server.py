@@ -139,5 +139,46 @@ def next_prayer(
     )
 
 
+@mcp.tool()
+def prayer_alarms(city: str, country: str, prayer: str, method: int = DEFAULT_METHOD) -> str:
+    """Seconds until a prayer, for setting a prayer reminder/alarm. city and country required (e.g. Leeds, UK); if the user did not say where, ask which city they are in first. prayer: fajr, dhuhr, asr, maghrib, isha, or 1-5 (1 Fajr, 2 Dhuhr, 3 Asr, 4 Maghrib, 5 Isha), or all. Then call self.robot.create_reminder once per line with that duration_seconds, message and repeat=false. Reminders are one-off and lost if the robot restarts."""
+    city, country = _need(city, country)
+    p = (prayer or "").strip().lower()
+    names = {n.lower(): n for n in SALAH_ORDER}
+    names.update({"zuhr": "Dhuhr", "dhuhur": "Dhuhr", "duhr": "Dhuhr", "asar": "Asr", "esha": "Isha", "isya": "Isha", "subh": "Fajr"})
+    if p == "all":
+        wanted = list(SALAH_ORDER)
+    elif p in ("1", "2", "3", "4", "5"):
+        wanted = [SALAH_ORDER[int(p) - 1]]
+    elif p in names:
+        wanted = [names[p]]
+    else:
+        raise ValueError(f"Unknown prayer '{prayer}'. Use fajr, dhuhr, asr, maghrib, isha, a number 1-5, or all.")
+    now = _local_now(city, country, method)
+    tz = now.tzinfo
+    days = [_fetch_timings(_today_str(now + timedelta(days=i)), city, country, method)["timings"] for i in (0, 1)]
+    rows = []
+    for name in wanted:
+        for i, t in enumerate(days):
+            if name not in t:
+                raise RuntimeError(f"Aladhan missing timing for {name}")
+            hh, mm = _parse_hhmm(t[name])
+            d = (now + timedelta(days=i)).date()
+            when = datetime(d.year, d.month, d.day, hh, mm, tzinfo=tz)
+            if when > now:
+                secs = int((when - now).total_seconds())
+                if secs > 86400:
+                    raise RuntimeError(f"{name} is {secs}s away, over the device's 86400s reminder limit")
+                rows.append((secs, name, f"{hh:02d}:{mm:02d}", i == 1))
+                break
+    rows.sort()
+    lines = []
+    for secs, name, hm, tom in rows:
+        h, m = divmod(secs // 60, 60)
+        lines.append(f'{name} {hm}{" tomorrow" if tom else ""}, in {h}h {m}m: duration_seconds={secs} message="Time for {name} prayer" repeat=false')
+    lines.append(f"Times for {city}, {country} ({tz.key}). Call self.robot.create_reminder once for each line above.")
+    return "\n".join(lines)
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")
