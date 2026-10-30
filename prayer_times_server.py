@@ -4,6 +4,9 @@ No default location: city and country are required. Default method: Moonsighting
 (Aladhan method 15) — commonly used for UK timings.
 """
 import re
+import threading
+import time
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -20,6 +23,37 @@ DEFAULT_METHOD_NAME = "Moonsighting Committee Worldwide"
 PRAYER_ORDER = ("Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha")
 # next_prayer skips Sunrise (not a salah)
 SALAH_ORDER = ("Fajr", "Dhuhr", "Asr", "Maghrib", "Isha")
+UA = {"User-Agent": "stackchan-bridge/1.0 (github.com/mohammedterryjack/stackchan-bridge)", "Accept-Language": "en"}
+BAD_DATE = "Date must be today, tomorrow, or YYYY-MM-DD."
+_geo_lock = threading.Lock()
+_geo_last = 0.0
+_geo_cache: "OrderedDict[tuple, tuple[float, float]]" = OrderedDict()
+
+
+def _geocode(city: str, country: str) -> tuple[float, float]:
+    """Nominatim lookup: 1 request/second, identifying User-Agent, 64-entry in-memory cache."""
+    global _geo_last
+    key = (city.lower(), country.lower())
+    with _geo_lock:
+        if key in _geo_cache:
+            _geo_cache.move_to_end(key)
+            return _geo_cache[key]
+        wait = 1.0 - (time.monotonic() - _geo_last)
+        if wait > 0:
+            time.sleep(wait)
+        try:
+            r = httpx.get("https://nominatim.openstreetmap.org/search", params={"q": f"{city}, {country}", "format": "jsonv2", "limit": 1}, headers=UA, timeout=TIMEOUT)
+        finally:
+            _geo_last = time.monotonic()
+        r.raise_for_status()
+        hits = r.json()
+        if not hits:
+            raise ValueError(f"I couldn't find {city}, {country}. Ask the user to check the city name.")
+        ll = (float(hits[0]["lat"]), float(hits[0]["lon"]))
+        _geo_cache[key] = ll
+        if len(_geo_cache) > 64:
+            _geo_cache.popitem(last=False)
+        return ll
 
 
 def _parse_hhmm(s: str) -> tuple[int, int]:
@@ -31,8 +65,9 @@ def _parse_hhmm(s: str) -> tuple[int, int]:
 
 def _fetch_timings(date_str: str, city: str, country: str, method: int) -> dict:
     """Fetch timings for DD-MM-YYYY. Fail loudly on non-200 / missing data."""
-    url = f"https://api.aladhan.com/v1/timingsByCity/{date_str}"
-    params = {"city": city, "country": country, "method": method}
+    lat, lon = _geocode(city, country)
+    url = f"https://api.aladhan.com/v1/timings/{date_str}"
+    params = {"latitude": lat, "longitude": lon, "method": method}
     resp = httpx.get(url, params=params, timeout=TIMEOUT, follow_redirects=True)
     resp.raise_for_status()
     body = resp.json()
@@ -67,6 +102,13 @@ def _local_now(city: str, country: str, method: int) -> datetime:
     return datetime.now(ZoneInfo(probe["timezone"]))
 
 
+def _parse_date(s: str, fmt: str) -> datetime:
+    try:
+        return datetime.strptime(s, fmt)
+    except ValueError:
+        raise ValueError(BAD_DATE) from None
+
+
 def _today_str(now: datetime) -> str:
     return now.strftime("%d-%m-%Y")
 
@@ -86,10 +128,11 @@ def prayer_times(
     elif d == "tomorrow":
         date_str = (_local_now(city, country, method) + timedelta(days=1)).strftime("%d-%m-%Y")
     elif re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
-        date_str = datetime.strptime(d, "%Y-%m-%d").strftime("%d-%m-%Y")
+        date_str = _parse_date(d, "%Y-%m-%d").strftime("%d-%m-%Y")
     else:
         # validate DD-MM-YYYY
-        datetime.strptime(date, "%d-%m-%Y")
+        _parse_date(date.strip(), "%d-%m-%Y")
+        date = date.strip()
         date_str = date
     info = _fetch_timings(date_str, city, country, method)
     t = info["timings"]

@@ -129,6 +129,8 @@ def _fmt_arxiv_read(text: str, args: dict | None = None) -> str:
     parts = max(1, -(-total // ARXIV_PART_CHARS))
     n = int(d["start"]) // ARXIV_PART_CHARS + 1
     body = re.sub(r"\s+", " ", d["content"]).strip()
+    if not body:
+        raise ValueError(f"That paper only has {parts} parts.")
     return f"{body}\n(arxiv {d['paper_id']} part {n} of {parts})"
 
 
@@ -158,6 +160,8 @@ def _prepare_args(name: str, arguments: dict | None, cfg: dict) -> dict:
     for up_k, pub_k in ((cfg.get("arg_rename") or {}).get(name) or {}).items():
         if pub_k in args:
             args[up_k] = args.pop(pub_k)
+    if name == "search_papers" and not str(args.get("query") or "").strip():
+        raise ValueError("Give me something to search for.")
     if name in (cfg.get("arxiv_part_tools") or []):
         part = args.pop("part", 1)
         try:
@@ -329,11 +333,28 @@ def main() -> None:
         if fmt_name and isinstance(msg.get("result"), dict) and not msg["result"].get("isError"):
             fmt = FORMATTERS[fmt_name]
             r3 = dict(msg["result"])
-            r3["content"] = [
-                {"type": "text", "text": fmt(c["text"], call_args)} if c.get("type") == "text" else c
-                for c in r3.get("content") or []
-            ]
+            try:
+                r3["content"] = [
+                    {"type": "text", "text": fmt(c["text"], call_args)} if c.get("type") == "text" else c
+                    for c in r3.get("content") or []
+                ]
+            except Exception as e:
+                # a formatter error must still answer the call, or the client waits forever
+                r3 = {"content": [{"type": "text", "text": f"Error: {e}"}], "isError": True}
             msg = dict(msg); msg["result"] = r3
+        elif isinstance(msg.get("result"), dict) and msg["result"].get("isError"):
+            r4 = dict(msg["result"]); c4 = []
+            for c in r4.get("content") or []:
+                if c.get("type") == "text":
+                    try:
+                        j = json.loads(c["text"])
+                        if isinstance(j, dict) and j.get("status") == "error" and j.get("message"):
+                            c = {"type": "text", "text": f"Error: {j['message']}"}
+                    except (ValueError, TypeError):
+                        pass
+                c4.append(c)
+            r4["content"] = c4
+            msg = dict(msg); msg["result"] = r4
         trunc_map = cfg.get("truncate_result_chars") or {}
         if tool_name and tool_name in trunc_map and "result" in msg:
             limit = int(trunc_map[tool_name])

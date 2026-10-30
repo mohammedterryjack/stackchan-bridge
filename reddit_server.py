@@ -171,7 +171,13 @@ def reddit_posts(
     args: dict[str, Any] = {"subreddit_name": sub, "limit": limit}
     if s == "top":
         args["time"] = "day"
-    return _compact(up.call(tool, args))
+    try:
+        raw = up.call(tool, args)
+    except RuntimeError as e:
+        if "302" in str(e) or "404" in str(e):
+            raise ValueError(f"Subreddit r/{sub} not found.") from None
+        raise
+    return _compact(raw)
 
 
 def _short(t: str, n: int) -> str:

@@ -28,6 +28,7 @@ import os
 import signal
 import sys
 import json
+import re
 import time
 import threading
 from dotenv import load_dotenv
@@ -316,6 +317,23 @@ async def pipe_websocket_to_process(websocket, process_holder, target, pending_c
                 pass
 
 
+_PYD_MSG = {"int_parsing": "must be a number", "float_parsing": "must be a number", "int_from_float": "must be a whole number",
+            "bool_parsing": "must be true or false", "string_type": "must be text", "missing_argument": "is required"}
+
+
+def _speakable_validation(text: str) -> str | None:
+    """Turn a pydantic 'validation error for call[...]' into a short spoken error, no links."""
+    if "validation error for call[" not in text:
+        return None
+    lines = text.splitlines()[1:]
+    out = []
+    for i, ln in enumerate(lines):
+        if ln and not ln.startswith(" ") and i + 1 < len(lines):
+            m = re.search(r"\[type=([a-z_]+)", lines[i + 1])
+            out.append(f"{ln.strip()} {_PYD_MSG.get(m.group(1) if m else '', 'has the wrong type')}")
+    return "Error: " + ("; ".join(out) or "wrong arguments") + "."
+
+
 def _slim_payload(payload: str) -> str:
     """Drop structuredContent (duplicate of text content) and tool outputSchema to keep Xiaozhi frames small."""
     try:
@@ -330,6 +348,12 @@ def _slim_payload(payload: str) -> str:
         res.pop("structuredContent"); changed = True
     if "_meta" in res:
         res.pop("_meta"); changed = True
+    if res.get("isError"):
+        for c in res.get("content") or []:
+            if isinstance(c, dict) and isinstance(c.get("text"), str):
+                short = _speakable_validation(c["text"])
+                if short:
+                    c["text"] = short; changed = True
     for t in res.get("tools") or []:
         if isinstance(t, dict) and "outputSchema" in t:
             t.pop("outputSchema"); changed = True
