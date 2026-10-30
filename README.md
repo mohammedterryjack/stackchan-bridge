@@ -17,7 +17,6 @@ Dockerised MCP bridge connecting an M5Stack Stack-chan (Xiaozhi cloud) to 13 loc
 - prayer-times: prayer_times, next_prayer, prayer_alarms (city and country required, no default)
 - quran-hadith: read_quran, search_quran, get_hadith, random_hadith
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
-- audio_test: audio_test_play (5 s public-domain clip via ResourceLink + resources/read paging; tests whether the device plays MCP audio)
 
 ## Setup
 1. `cp .env.example .env` and set `STACKCHAN_MCP_ENDPOINT` (point `env_file` in compose.yaml at it).
