@@ -5,7 +5,7 @@ Dockerised MCP bridge connecting an M5Stack Stack-chan (Xiaozhi cloud) to 13 loc
 ## Servers and tools
 - calculator: calculator
 - web-search: web_search, web_read
-- time: clock_time, convert_time
+- time: clock_time, convert_time (city or timezone required, no default)
 - hackernews: hn_top_stories, hn_search, hn_story, hn_user
 - reddit: reddit_posts, reddit_post
 - youtube: youtube_transcript, youtube_info
@@ -14,7 +14,7 @@ Dockerised MCP bridge connecting an M5Stack Stack-chan (Xiaozhi cloud) to 13 loc
 - arxiv: arxiv_search, arxiv_read, arxiv_abstract
 - zines: zine_search, zine_read
 - darknet-diaries: darknet_episodes, darknet_episode, darknet_transcript, darknet_find
-- prayer-times: prayer_times, next_prayer
+- prayer-times: prayer_times, next_prayer (city and country required, no default)
 - quran-hadith: read_quran, search_quran, get_hadith, random_hadith
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
 

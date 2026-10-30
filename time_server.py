@@ -1,4 +1,4 @@
-"""Time MCP: timezone optional, default Europe/London."""
+"""Time MCP: timezone/city is always required; no default location."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -7,12 +7,14 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 from fastmcp import FastMCP
 
-DEFAULT_TZ = "Europe/London"
+NO_LOC = "No location given. Ask the user which city they are in."
 mcp = FastMCP("Time")
 
 
 def _tz(name: str | None) -> ZoneInfo:
-    n = (name or DEFAULT_TZ).strip() or DEFAULT_TZ
+    n = (name or "").strip()
+    if not n:
+        raise ValueError(NO_LOC)
     try:
         return ZoneInfo(n)
     except (ZoneInfoNotFoundError, ValueError):
@@ -28,8 +30,8 @@ def _tz(name: str | None) -> ZoneInfo:
 
 
 @mcp.tool()
-def clock_time(timezone: str | None = None) -> str:
-    """Current time. timezone: optional IANA name or city, e.g. Tokyo (default Europe/London). Use for 'what time is it', not calendars."""
+def clock_time(timezone: str) -> str:
+    """Current time in a city or timezone. timezone: required, city or IANA name, e.g. Tokyo or Asia/Tokyo. If the user did not say where, ask which city they are in first. Use for 'what time is it', not calendars."""
     z = _tz(timezone)
     now = datetime.now(z)
     return f"{now.strftime('%A %d %B %Y, %H:%M')} ({z.key})"
@@ -38,10 +40,10 @@ def clock_time(timezone: str | None = None) -> str:
 @mcp.tool()
 def convert_time(
     time: str,
-    source_timezone: str | None = None,
-    target_timezone: str | None = None,
+    source_timezone: str,
+    target_timezone: str,
 ) -> str:
-    """Convert a time (15:00, 3pm, 3:30 pm) between timezones or cities. source/target default Europe/London. Not for dates beyond today."""
+    """Convert a time (15:00, 3pm, 3:30 pm) between timezones or cities. source_timezone and target_timezone are both required (city or IANA name). If the user did not say one, ask them which city they mean. Not for dates beyond today."""
     src = _tz(source_timezone)
     tgt = _tz(target_timezone)
     m = re.fullmatch(r"\s*(\d{1,2})(?:[:.](\d{2}))?\s*([ap]\.?m\.?)?\s*", time.lower())
