@@ -1,0 +1,17 @@
+# server|tool|json args  (used by: make test)
+calculator|calculator|{"python_expression":"2+3*4"}
+web-search|web_search|{"query":"stack-chan robot","max_results":2}
+time|clock_time|{"timezone":"Europe/London"}
+hackernews|hn_top_stories|{"num_stories":2}
+reddit|reddit_posts|{"subreddit":"python","limit":2}
+youtube|youtube_info|{"video":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
+news|news_headlines|{"limit":2}
+arxiv|arxiv_search|{"query":"robot","max_results":2}
+zines|zine_search|{"query":"hacking","limit":2}
+prayer-times|next_prayer|{"city":"Manchester","country":"UK"}
+youtube-search|youtube_search|{"query":"stack-chan","limit":2}
+quran-hadith|read_quran|{"surah":"1","ayah":"1"}
+darknet-diaries|darknet_episode|{"episode":"1"}
+maps|map_search|{"query":"Big Ben","limit":1}
+tanakh|tanakh_verse|{"book":"Genesis","chapter":1,"verse":"1"}
+rumi|rumi_read|{"book":1,"verse":1}

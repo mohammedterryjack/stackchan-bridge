@@ -9,10 +9,9 @@ RUN python -m venv /opt/social && /opt/social/bin/pip install --no-cache-dir "mc
 RUN pip install --no-cache-dir "https://github.com/jkawamoto/mcp-youtube-transcript/archive/fc6e33cfdc8618d375dc600bb54f0576d84615fe.tar.gz"
 # arxiv-mcp-server needs mcp 1.x (>=1.27); own venv
 RUN python -m venv /opt/arxiv && /opt/arxiv/bin/pip install --no-cache-dir "mcp>=1.27,<2" arxiv-mcp-server==0.8.2
-# DuckDB httpfs under /opt (compose tmpfs wipes /home/bridge); pinned duckdb==1.3.2
-COPY duckdb-ext/httpfs.duckdb_extension.gz /tmp/httpfs.duckdb_extension.gz
+# DuckDB httpfs fetched at build time for the build arch, under /opt (compose tmpfs wipes /home/bridge); pinned duckdb==1.3.2
 COPY duckdb_bake_httpfs.py /tmp/duckdb_bake_httpfs.py
-RUN python /tmp/duckdb_bake_httpfs.py && rm -f /tmp/httpfs.duckdb_extension.gz /tmp/duckdb_bake_httpfs.py
+RUN python /tmp/duckdb_bake_httpfs.py && rm -f /tmp/duckdb_bake_httpfs.py
 COPY mcp_pipe.py calculator.py news_server.py zine_server.py time_server.py reddit_server.py hn_server.py web_search_server.py prayer_times_server.py youtube_search_server.py quran_hadith_server.py darknet_server.py maps_server.py tanakh_server.py rumi_server.py mcp_filter_proxy.py mcp_config.json ./
 COPY filter_configs/ /app/filter_configs/
 USER bridge

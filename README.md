@@ -26,45 +26,31 @@ A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, c
 No API keys are needed: every server uses free, keyless sources.
 
 ## Prerequisites
-- Docker with Docker Compose (Docker Desktop on macOS/Windows is fine). Any always-on computer works; the bridge only makes outgoing connections.
+- Docker with Docker Compose v2 (Docker Desktop on macOS/Windows is fine), plus `git` and `make`. Any always-on computer works; the bridge only makes outgoing connections.
 - A Stack-chan (or other device) running Xiaozhi firmware, bound to an agent in your account on xiaozhi.me.
-- `git` and `curl`.
 
-## Setup
-1. Clone the repo:
+## Quick start
 
-       git clone https://github.com/mohammedterryjack/stackchan-bridge.git
-       cd stackchan-bridge
+    git clone https://github.com/mohammedterryjack/stackchan-bridge.git
+    cd stackchan-bridge
+    make setup
 
-2. Get your MCP endpoint: in xiaozhi.me, open the MCP endpoint settings for your agent and copy the endpoint address (a `wss://...` URL containing a token). Treat it like a password; anyone with it can attach tools to your robot.
+The first `make setup` creates `.env` from `.env.example` and stops with a message. Open `.env` and set `MCP_ENDPOINT` to your endpoint: in xiaozhi.me, open the MCP endpoint settings for your agent and copy the `wss://...` address. Treat it like a password; anyone with it can attach tools to your robot. `.env` is gitignored. Then run `make setup` again.
 
-3. Create `.env` (gitignored) and paste the endpoint:
+`make setup` checks Docker and Compose are installed and running, checks `.env` has a real `MCP_ENDPOINT` (it fails loudly otherwise; there are no defaults), then builds and starts only the `stackchan-bridge` container. The DuckDB httpfs extension the zines and Rumi servers need is downloaded inside the Docker build for your machine's architecture (arm64 or amd64), so there is no manual download.
 
-       cp .env.example .env
+| Command | What it does |
+|---|---|
+| `make setup` / `make run` | check prerequisites and `.env`, build and start the bridge |
+| `make test` | call one tool on every server inside the running bridge (list in `tools/smoke.txt`); prints PASS/FAIL, exits non-zero on any failure |
+| `make logs` | follow the bridge logs (don't paste them publicly without checking for your endpoint) |
+| `make restart` / `make stop` | restart or stop the bridge |
 
-   Then edit `.env` so it reads `MCP_ENDPOINT=<your endpoint>`. The variable must be called `MCP_ENDPOINT`.
+To run a second copy alongside (e.g. a second Stack-chan agent), use another clone with its own `.env` and run `COMPOSE_PROJECT_NAME=bridge2 make setup CONTAINER=bridge2` (pass `CONTAINER=bridge2` to the other targets too).
 
-4. Point compose at your `.env`: `compose.yaml` currently has `env_file:` set to the author's own path. Change it to `env_file: .env`.
+Then ask Stack-chan something like "what time is it in Tokyo?" or "read Psalm 23".
 
-5. Download the DuckDB httpfs extension (not committed; the Dockerfile bakes it into the image so the zines and Rumi servers can read Hugging Face datasets). Use `linux_arm64` on Apple Silicon / ARM hosts, `linux_amd64` on Intel/AMD:
-
-       mkdir -p duckdb-ext
-       curl -fL -o duckdb-ext/httpfs.duckdb_extension.gz https://extensions.duckdb.org/v1.3.2/linux_arm64/httpfs.duckdb_extension.gz
-
-   The version must match the pinned `duckdb==1.3.2` in the Dockerfile.
-
-6. Build and start only the bridge (the `wa-bridge` service in `compose.yaml` is a separate, optional service that needs files not in this repo; ignore it):
-
-       docker compose up -d --build --no-deps stackchan-bridge
-
-7. Check it connected:
-
-       docker compose ps stackchan-bridge
-       docker logs --tail 50 stackchan-bridge
-
-   Logs show the WebSocket connection and each server starting. Don't paste logs publicly without checking them for your endpoint.
-
-8. Ask Stack-chan something like "what time is it in Tokyo?" or "read Psalm 23".
+The `wa-bridge` service in `compose.yaml` is optional, not part of the bridge, sits behind the `whatsapp` compose profile and is never built by `make setup`.
 
 ## Testing a tool
 `tools/sc_t.py` starts one server inside the running container and calls a tool the way Stack-chan would, printing the reply, size and time taken:
@@ -81,7 +67,7 @@ The first argument is a server name from `mcp_config.json`; the second is `list`
 - `MCP_TOOL_DEADLINE_S` (default 8) sets the per-call deadline.
 - `mcp_config.json` and `filter_configs/` are baked into the image, so rebuild after any change:
 
-      docker compose up -d --build --no-deps stackchan-bridge
+      make setup
 
 ## Privacy and security
 - The container runs as a non-root user with a read-only filesystem, all capabilities dropped and only `/tmp` as scratch space. Nothing is written to disk; the zines and Rumi datasets (a few MB) are loaded into memory at start-up.
@@ -89,8 +75,8 @@ The first argument is a server name from `mcp_config.json`; the second is `list`
 - Keep `.env` private and never commit it (it's in `.gitignore`).
 
 ## Troubleshooting
-- **"Please set the MCP_ENDPOINT environment variable"** in the logs: `.env` is missing, misnamed, or `env_file` in `compose.yaml` doesn't point at it.
-- **Build fails at the DuckDB step:** `duckdb-ext/httpfs.duckdb_extension.gz` is missing or for the wrong architecture.
+- **"Please set the MCP_ENDPOINT environment variable"** in the logs: `.env` in the repo folder is missing or the variable is misnamed; `make setup` checks this.
+- **Build fails at the DuckDB step:** the build couldn't download the httpfs extension from extensions.duckdb.org; check internet access and retry.
 - **Changes don't show up:** rebuild; config is baked into the image.
 - **Stack-chan doesn't use a tool:** ask more explicitly (e.g. "use the maps tool to find pharmacies near ..."), and check the tool works with `tools/sc_t.py`.
 - **`web_read` says "empty body":** the page is built by JavaScript and has no text in its HTML.

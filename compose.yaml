@@ -2,9 +2,9 @@ services:
   stackchan-bridge:
     build:
       context: .
-    container_name: stackchan-bridge
+    container_name: ${BRIDGE_CONTAINER:-stackchan-bridge}
     restart: unless-stopped
-    env_file: /Users/mohammed/stackchan/mcp-calculator/.env
+    env_file: .env
     read_only: true
     tmpfs: ["/tmp", "/home/bridge:uid=1000,gid=1000"]
     cap_drop: [ALL]
@@ -16,12 +16,14 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # optional, not part of the bridge; start with: docker compose --profile whatsapp up -d wa-bridge
   wa-bridge:
+    profiles: [whatsapp]
     build:
-      context: /Users/mohammed/stackchan/whatsapp-mcp/whatsapp-bridge
-      dockerfile: /Users/mohammed/stackchan/docker/Dockerfile.wa-bridge
+      context: ${WA_BRIDGE_CONTEXT:-../whatsapp-mcp/whatsapp-bridge}
+      dockerfile: ${PWD}/Dockerfile.wa-bridge
     container_name: wa-bridge
-    restart: unless-stopped
+    restart: "no"
     read_only: true
     tmpfs: ["/tmp"]
     cap_drop: [ALL]
