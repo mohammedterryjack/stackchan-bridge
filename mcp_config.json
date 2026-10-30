@@ -177,6 +177,16 @@
         "MCP_TOOL_DEADLINE_S": "8",
         "PYTHONUNBUFFERED": "1"
       }
+    },
+    "audio_test": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/audio_test_server.py"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
     }
   }
 }
