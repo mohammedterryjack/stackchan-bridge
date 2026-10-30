@@ -16,24 +16,5 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # optional, not part of the bridge; start with: docker compose --profile whatsapp up -d wa-bridge
-  wa-bridge:
-    profiles: [whatsapp]
-    build:
-      context: ${WA_BRIDGE_CONTEXT:-../whatsapp-mcp/whatsapp-bridge}
-      dockerfile: ${PWD}/Dockerfile.wa-bridge
-    container_name: wa-bridge
-    restart: "no"
-    read_only: true
-    tmpfs: ["/tmp"]
-    cap_drop: [ALL]
-    security_opt: ["no-new-privileges:true"]
-    volumes:
-      - wa-store:/app/store
-    networks: [stackchan]
-
-volumes:
-  wa-store:
-
 networks:
   stackchan:

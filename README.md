@@ -50,8 +50,6 @@ To run a second copy alongside (e.g. a second Stack-chan agent), use another clo
 
 Then ask Stack-chan something like "what time is it in Tokyo?" or "read Psalm 23".
 
-The `wa-bridge` service in `compose.yaml` is optional, not part of the bridge, sits behind the `whatsapp` compose profile and is never built by `make setup`.
-
 ## Testing a tool
 `tools/sc_t.py` starts one server inside the running container and calls a tool the way Stack-chan would, printing the reply, size and time taken:
 

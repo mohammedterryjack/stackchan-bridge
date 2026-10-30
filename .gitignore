@@ -9,7 +9,5 @@ token*.json
 oauth_states.json
 wa_qr*
 wa-store/
-whatsapp-mcp/
-Dockerfile.wa-bridge
 duckdb-ext/
 .DS_Store
