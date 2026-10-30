@@ -16,6 +16,7 @@ Dockerised MCP bridge connecting an M5Stack Stack-chan (Xiaozhi cloud) to 13 loc
 - darknet-diaries: darknet_episodes, darknet_episode, darknet_transcript, darknet_find
 - prayer-times: prayer_times, next_prayer
 - quran-hadith: read_quran, search_quran, get_hadith, random_hadith
+- maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
 
 ## Setup
 1. `cp .env.example .env` and set `STACKCHAN_MCP_ENDPOINT` (point `env_file` in compose.yaml at it).
