@@ -1,0 +1,37 @@
+services:
+  stackchan-bridge:
+    build:
+      context: .
+    container_name: stackchan-bridge
+    restart: unless-stopped
+    env_file: /Users/mohammed/stackchan/mcp-calculator/.env
+    read_only: true
+    tmpfs: ["/tmp", "/home/bridge:uid=1000,gid=1000"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [stackchan]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  wa-bridge:
+    build:
+      context: /Users/mohammed/stackchan/whatsapp-mcp/whatsapp-bridge
+      dockerfile: /Users/mohammed/stackchan/docker/Dockerfile.wa-bridge
+    container_name: wa-bridge
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - wa-store:/app/store
+    networks: [stackchan]
+
+volumes:
+  wa-store:
+
+networks:
+  stackchan:

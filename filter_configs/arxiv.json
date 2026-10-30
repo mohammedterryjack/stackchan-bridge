@@ -1,0 +1,81 @@
+{
+  "allow": [
+    "search_papers",
+    "get_abstract",
+    "download_paper"
+  ],
+  "rename": {
+    "search_papers": "arxiv_search",
+    "get_abstract": "arxiv_abstract",
+    "download_paper": "arxiv_read"
+  },
+  "descriptions": {
+    "search_papers": "Find arXiv research papers by topic. One line each: title, first author, year (arxiv ID).",
+    "get_abstract": "Short summary of one arXiv paper. paper_id from '(arxiv 2603.03251)'.",
+    "download_paper": "Read an arXiv paper aloud, about 1000 characters per part. paper_id from '(arxiv 2603.03251)'. Reply ends '(arxiv ID part N of M)'; ask for part N+1 to continue."
+  },
+  "add_params": {
+    "download_paper": {
+      "part": {
+        "type": "integer",
+        "default": 1,
+        "minimum": 1,
+        "description": "Part number, 1 = start."
+      }
+    }
+  },
+  "hide_params": {
+    "download_paper": [
+      "return_full_text",
+      "force",
+      "start",
+      "max_chars"
+    ]
+  },
+  "arxiv_part_tools": [
+    "download_paper"
+  ],
+  "call_defaults": {
+    "search_papers": {
+      "max_results": 5
+    }
+  },
+  "schema_defaults": {
+    "search_papers": {
+      "max_results": 5
+    }
+  },
+  "maxima": {
+    "search_papers": {
+      "max_results": 10
+    }
+  },
+  "drop_params": {
+    "search_papers": [
+      "start",
+      "abstract_mode",
+      "date_from",
+      "date_to",
+      "categories"
+    ]
+  },
+  "reply_format": {
+    "search_papers": "arxiv_search",
+    "get_abstract": "arxiv_abstract_short",
+    "download_paper": "arxiv_read"
+  },
+  "strip_prefixes": {
+    "get_abstract": {
+      "paper_id": [
+        "arxiv:",
+        "arxiv"
+      ]
+    },
+    "download_paper": {
+      "paper_id": [
+        "arxiv:",
+        "arxiv"
+      ]
+    }
+  }
+}

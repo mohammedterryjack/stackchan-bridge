@@ -1,0 +1,158 @@
+{
+  "mcpServers": {
+    "calculator": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "-m",
+        "calculator"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "web-search": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/web_search_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "time": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/time_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "hackernews": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/hn_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "reddit": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/reddit_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "youtube": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/mcp_filter_proxy.py",
+        "mcp-youtube-transcript",
+        "--response-limit",
+        "1200"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1",
+        "FILTER_PROXY_CONFIG": "/app/filter_configs/youtube.json"
+      }
+    },
+    "news": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/news_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "arxiv": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/mcp_filter_proxy.py",
+        "/opt/arxiv/bin/arxiv-mcp-server",
+        "--storage-path",
+        "/home/bridge/arxiv-papers"
+      ],
+      "env": {
+        "FILTER_PROXY_CONFIG": "/app/filter_configs/arxiv.json",
+        "MAX_RESULTS": "10",
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "PYTHONUNBUFFERED": "1",
+        "MCP_TOOL_DEADLINE_S": "8"
+      }
+    },
+    "zines": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/zine_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "prayer-times": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/prayer_times_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "youtube-search": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/youtube_search_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "quran-hadith": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/quran_hadith_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "allow": ["hn_top_stories", "hn_search", "hn_story", "hn_user"],
+  "descriptions": {
+    "hn_top_stories": "Hacker News list by type. Defaults: story_type=top, num_stories=5. Use for browse, not deep threads.",
+    "hn_search": "Search HN stories by keyword. Prefer over paging hn_top_stories.",
+    "hn_story": "One HN story; comments truncated to keep payload small. Not for dumping huge threads.",
+    "hn_user": "HN user profile by username."
+  },
+  "call_defaults": {
+    "hn_top_stories": {"story_type": "top", "num_stories": 5}
+  },
+  "schema_defaults": {
+    "hn_top_stories": {"story_type": "top", "num_stories": 5}
+  },
+  "maxima": {
+    "hn_top_stories": {"num_stories": 10},
+    "hn_search": {"num_results": 10},
+    "hn_user": {"num_stories": 10}
+  },
+  "truncate_result_chars": {
+    "hn_story": 3500
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "allow": ["web_search", "fetch_content"],
+  "descriptions": {
+    "web_search": "DuckDuckGo web search. Short snippets only. Prefer over fetch for discovery.",
+    "fetch_content": "Fetch one URL as truncated plain text. Cap max_length; not for binary/PDF."
+  },
+  "call_defaults": {
+    "web_search": {"max_results": 5},
+    "fetch_content": {"max_length": 2500}
+  },
+  "schema_defaults": {
+    "web_search": {"max_results": 5},
+    "fetch_content": {"max_length": 2500}
+  },
+  "maxima": {
+    "web_search": {"max_results": 8},
+    "fetch_content": {"max_length": 4000}
+  },
+  "drop_params": {
+    "fetch_content": ["backend", "parse_mode", "raw"]
+  }
+}
