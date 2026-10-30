@@ -13,7 +13,7 @@ RUN python -m venv /opt/arxiv && /opt/arxiv/bin/pip install --no-cache-dir "mcp>
 COPY duckdb-ext/httpfs.duckdb_extension.gz /tmp/httpfs.duckdb_extension.gz
 COPY duckdb_bake_httpfs.py /tmp/duckdb_bake_httpfs.py
 RUN python /tmp/duckdb_bake_httpfs.py && rm -f /tmp/httpfs.duckdb_extension.gz /tmp/duckdb_bake_httpfs.py
-COPY mcp_pipe.py calculator.py news_server.py zine_server.py time_server.py reddit_server.py hn_server.py web_search_server.py prayer_times_server.py youtube_search_server.py quran_hadith_server.py mcp_filter_proxy.py mcp_config.json ./
+COPY mcp_pipe.py calculator.py news_server.py zine_server.py time_server.py reddit_server.py hn_server.py web_search_server.py prayer_times_server.py youtube_search_server.py quran_hadith_server.py darknet_server.py mcp_filter_proxy.py mcp_config.json ./
 COPY filter_configs/ /app/filter_configs/
 USER bridge
 CMD ["python","mcp_pipe.py"]

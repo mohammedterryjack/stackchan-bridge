@@ -1,6 +1,6 @@
 # Stack-chan MCP bridge
 
-Dockerised MCP bridge connecting an M5Stack Stack-chan (Xiaozhi cloud) to 12 local MCP servers exposing 28 tools. Replies are short, speakable plain text; each call has an 8s deadline.
+Dockerised MCP bridge connecting an M5Stack Stack-chan (Xiaozhi cloud) to 13 local MCP servers exposing 32 tools. Replies are short, speakable plain text; each call has an 8s deadline.
 
 ## Servers and tools
 - calculator: calculator
@@ -13,6 +13,7 @@ Dockerised MCP bridge connecting an M5Stack Stack-chan (Xiaozhi cloud) to 12 loc
 - news: news_headlines, simonwillison_latest, security_news
 - arxiv: arxiv_search, arxiv_read, arxiv_abstract
 - zines: zine_search, zine_read
+- darknet-diaries: darknet_episodes, darknet_episode, darknet_transcript, darknet_find
 - prayer-times: prayer_times, next_prayer
 - quran-hadith: read_quran, search_quran, get_hadith, random_hadith
 
