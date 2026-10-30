@@ -1,4 +1,4 @@
-"""Rumi Mathnawi MCP: DuckDB over hf://datasets/MTerryJack/rumi-mathnawi (Nicholson English, Books I-IV)."""
+"""Rumi Mathnawi MCP: DuckDB over hf://datasets/MTerryJack/rumi-mathnawi (Nicholson English, Books I-VI)."""
 from __future__ import annotations
 
 import re
@@ -9,7 +9,7 @@ import duckdb
 from fastmcp import FastMCP
 
 DATASET_PARQUET = "hf://datasets/MTerryJack/rumi-mathnawi/data/train.parquet"
-BOOKS = (1, 2, 3, 4)
+BOOKS = (1, 2, 3, 4, 5, 6)
 MAX_LIMIT = 5
 PAGE_CHARS = 1400
 SNIPPET_CHARS = 160
@@ -26,7 +26,7 @@ _pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="rumi")
 
 
 def _load() -> None:
-    # Whole dataset is ~1.3MB parquet (~3.7k passages): one bounded in-memory table.
+    # Whole dataset is ~2MB parquet (~5.7k passages): one bounded in-memory table.
     global _con, _load_error
     try:
         con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
@@ -105,7 +105,7 @@ def _page(book: int, start_verse: int) -> str:
 
 def _read_impl(book: int, verse: int | None, section: str | None) -> str:
     if book not in BOOKS:
-        raise ValueError("book must be 1, 2, 3 or 4 (Books 5 and 6 are not included).")
+        raise ValueError("book must be 1 to 6.")
     s = (section or "").strip()
     if verse is not None and s:
         raise ValueError("Give verse or section, not both.")
@@ -155,19 +155,19 @@ def _random_impl() -> str:
 
 @mcp.tool()
 def rumi_read(book: int, verse: int | None = None, section: str | None = None) -> str:
-    """Read Rumi's Mathnawi (Nicholson's English, Books 1-4) from a verse number or a section-title phrase. Returns about a page and a Next: hint to continue."""
+    """Read Rumi's Mathnawi (Nicholson's English, Books 1-6) from a verse number or a section-title phrase. Returns about a page and a Next: hint to continue."""
     return _run(_read_impl, book, verse, section)
 
 
 @mcp.tool()
 def rumi_search(query: str, limit: int = 3) -> str:
-    """Search the Mathnawi (English, Books 1-4) for a word or phrase. limit 1-5. Each line ends with its reference; use rumi_read to read on."""
+    """Search the Mathnawi (English, Books 1-6) for a word or phrase. limit 1-5. Each line ends with its reference; use rumi_read to read on."""
     return _run(_search_impl, query, limit)
 
 
 @mcp.tool()
 def rumi_random() -> str:
-    """A random passage from Rumi's Mathnawi (English, Books 1-4) with its reference."""
+    """A random passage from Rumi's Mathnawi (English, Books 1-6) with its reference."""
     return _run(_random_impl)
 
 

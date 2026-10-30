@@ -17,7 +17,7 @@ Dockerised MCP bridge connecting an M5Stack Stack-chan (Xiaozhi cloud) to 16 loc
 - prayer-times: prayer_times, next_prayer, prayer_alarms (city and country required, no default)
 - quran-hadith: read_quran, search_quran, get_hadith, random_hadith
 - tanakh: tanakh_verse, tanakh_chapter, tanakh_search (Sefaria, English)
-- rumi: rumi_read, rumi_search, rumi_random (Nicholson's English Mathnawi, Books 1-4, via HF dataset)
+- rumi: rumi_read, rumi_search, rumi_random (Nicholson's English Mathnawi, Books 1-6, via HF dataset)
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
 
 ## Setup
