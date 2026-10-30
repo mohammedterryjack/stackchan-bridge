@@ -189,6 +189,18 @@
         "MCP_TOOL_DEADLINE_S": "8",
         "PYTHONUNBUFFERED": "1"
       }
+    },
+    "rumi": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/rumi_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
     }
   }
 }
