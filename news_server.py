@@ -1,4 +1,4 @@
-"""Compact news MCP server: Google News / BBC headlines, Simon Willison's blog, security news feeds."""
+"""Compact news MCP server: Google News / Al Jazeera / DW / Real News headlines, Simon Willison's blog, security news feeds."""
 import html
 import re
 import time
@@ -10,7 +10,11 @@ from fastmcp import FastMCP
 
 mcp = FastMCP("News")
 
-BBC_TOP = "https://feeds.bbci.co.uk/news/rss.xml"
+TOP_FEEDS = [
+    ("Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml"),
+    ("DW", "https://rss.dw.com/rdf/rss-en-all"),
+    ("Real News", "https://therealnews.com/feed"),
+]
 GOOGLE_SEARCH = "https://news.google.com/rss/search?q={q}&hl=en-GB&gl=GB&ceid=GB:en"
 SIMON_FEED = "https://simonwillison.net/atom/everything/"
 SECURITY_FEEDS = {
@@ -20,6 +24,7 @@ SECURITY_FEEDS = {
     "2600": ("2600: The Hacker Quarterly", "https://www.2600.com/rss.xml"),
 }
 ATOM = "{http://www.w3.org/2005/Atom}"
+RSS1 = "{http://purl.org/rss/1.0/}"
 MAX_LIMIT = 10
 SUMMARY_CHARS = 100
 TIMEOUT = httpx.Timeout(connect=3, read=5, write=3, pool=3)
@@ -55,6 +60,9 @@ def _entries(root: ET.Element) -> list[dict]:
     for it in root.findall("./channel/item"):
         out.append({"title": _clean(it.findtext("title")), "date": _clean(it.findtext("pubDate"))[:22],
                     "link": (it.findtext("link") or "").strip(), "summary": _clean(it.findtext("description"))})
+    for it in root.findall(f"{RSS1}item"):  # RSS 1.0 / RDF (e.g. DW)
+        out.append({"title": _clean(it.findtext(f"{RSS1}title")), "date": "",
+                    "link": (it.findtext(f"{RSS1}link") or "").strip(), "summary": _clean(it.findtext(f"{RSS1}description"))})
     for e in root.findall(f"{ATOM}entry"):
         link_el = e.find(f"{ATOM}link[@rel='alternate']")
         if link_el is None:
@@ -83,14 +91,16 @@ def _format(heading: str, items: list[dict], limit: int, summary: bool) -> str:
 
 @mcp.tool()
 def news_headlines(topic: str | None = None, limit: int = 5) -> str:
-    """Latest news headlines. Use for current events overview, not deep articles. topic: Google News search term; omit for BBC top. limit: 1-10 (default 5)."""
+    """Latest news headlines. Use for current events overview, not deep articles. topic: Google News search term; omit for top world headlines from Al Jazeera, DW and Real News (alternating). limit: 1-10 (default 5)."""
     _check_limit(limit)
     topic = (topic or "").strip()
     if topic:
         items = _entries(_fetch(GOOGLE_SEARCH.format(q=urllib.parse.quote(topic))))
         # Google News descriptions just repeat the title
         return _format(f"Google News: {topic}", items, limit, summary=False)
-    return _format("BBC top headlines", _entries(_fetch(BBC_TOP)), limit, summary=True)
+    feeds = [[dict(it, title=f"{name}: {it['title']}") for it in _entries(_fetch(url))] for name, url in TOP_FEEDS]
+    mixed = [it for group in zip(*feeds) for it in group]
+    return _format("Top headlines from Al Jazeera, DW and Real News", mixed, limit, summary=True)
 
 
 @mcp.tool()
