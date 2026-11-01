@@ -15,3 +15,4 @@ darknet-diaries|darknet_episode|{"episode":"1"}
 maps|map_search|{"query":"Big Ben","limit":1}
 tanakh|tanakh_verse|{"book":"Genesis","chapter":1,"verse":"1"}
 rumi|rumi_read|{"book":1,"verse":1}
+aesop|aesop_read|{"fable_id":1}
