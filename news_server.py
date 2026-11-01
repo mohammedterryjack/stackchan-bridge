@@ -1,4 +1,4 @@
-"""Compact news MCP server: Google News / Al Jazeera / DW / Real News headlines, Simon Willison's blog, security news feeds."""
+"""Compact news MCP server: Google News / Al Jazeera / DW / Real News / Reuters headlines, Simon Willison's blog, security news feeds."""
 import html
 import re
 import time
@@ -14,6 +14,8 @@ TOP_FEEDS = [
     ("Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml"),
     ("DW", "https://rss.dw.com/rdf/rss-en-all"),
     ("Real News", "https://therealnews.com/feed"),
+    # Reuters has no official RSS: Google News restricted to reuters.com, last 24h.
+    ("Reuters", "https://news.google.com/rss/search?q=when:24h+site:reuters.com&hl=en-GB&gl=GB&ceid=GB:en"),
 ]
 GOOGLE_SEARCH = "https://news.google.com/rss/search?q={q}&hl=en-GB&gl=GB&ceid=GB:en"
 SIMON_FEED = "https://simonwillison.net/atom/everything/"
@@ -89,18 +91,29 @@ def _format(heading: str, items: list[dict], limit: int, summary: bool) -> str:
     return "\n".join(lines)
 
 
+def _source_items(name: str, url: str) -> list[dict]:
+    items = _entries(_fetch(url))
+    if name != "Reuters":
+        return items
+    # Google News titles end ' - Reuters' and descriptions just repeat the title.
+    out = [dict(it, title=it["title"][: -len(" - Reuters")], summary="") for it in items if it["title"].endswith(" - Reuters")]
+    if not out:
+        raise RuntimeError("Reuters feed returned no Reuters headlines")
+    return out
+
+
 @mcp.tool()
 def news_headlines(topic: str | None = None, limit: int = 5) -> str:
-    """Use when the user asks for the news, headlines or what is happening in the world or on a topic. topic: optional search term (Google News); omit for top world headlines from Al Jazeera, DW and Real News. limit 1-10 (default 5). Returns one headline per line."""
+    """Use when the user asks for the news, headlines or what is happening in the world or on a topic. topic: optional search term (Google News); omit for top world headlines from Al Jazeera, DW, Real News and Reuters. limit 1-10 (default 5). Returns one headline per line."""
     _check_limit(limit)
     topic = (topic or "").strip()
     if topic:
         items = _entries(_fetch(GOOGLE_SEARCH.format(q=urllib.parse.quote(topic))))
         # Google News descriptions just repeat the title
         return _format(f"Google News: {topic}", items, limit, summary=False)
-    feeds = [[dict(it, title=f"{name}: {it['title']}") for it in _entries(_fetch(url))] for name, url in TOP_FEEDS]
+    feeds = [[dict(it, title=f"{name}: {it['title']}") for it in _source_items(name, url)] for name, url in TOP_FEEDS]
     mixed = [it for group in zip(*feeds) for it in group]
-    return _format("Top headlines from Al Jazeera, DW and Real News", mixed, limit, summary=True)
+    return _format("Top headlines from Al Jazeera, DW, Real News and Reuters", mixed, limit, summary=True)
 
 
 @mcp.tool()
