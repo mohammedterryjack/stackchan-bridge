@@ -10,9 +10,9 @@
     "download_paper": "arxiv_read"
   },
   "descriptions": {
-    "search_papers": "Find arXiv research papers by topic. One line each: title, first author, year (arxiv ID).",
-    "get_abstract": "Short summary of one arXiv paper. paper_id from '(arxiv 2603.03251)'.",
-    "download_paper": "Read an arXiv paper aloud, about 1000 characters per part. paper_id from '(arxiv 2603.03251)'. Reply ends '(arxiv ID part N of M)'; ask for part N+1 to continue."
+    "search_papers": "Use when the user asks for research papers or academic work on a topic. Returns one line each: title, first author, year (arxiv ID).",
+    "get_abstract": "Use to summarise one arXiv paper. paper_id from '(arxiv 2603.03251)'. Returns a short summary.",
+    "download_paper": "Use to read an arXiv paper aloud. paper_id from '(arxiv 2603.03251)'; part 1 = start. Returns about 1000 characters ending '(arxiv ID part N of M)'; ask for part N+1 to continue."
   },
   "add_params": {
     "download_paper": {

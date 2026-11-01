@@ -91,7 +91,7 @@ def _format(heading: str, items: list[dict], limit: int, summary: bool) -> str:
 
 @mcp.tool()
 def news_headlines(topic: str | None = None, limit: int = 5) -> str:
-    """Latest news headlines. Use for current events overview, not deep articles. topic: Google News search term; omit for top world headlines from Al Jazeera, DW and Real News (alternating). limit: 1-10 (default 5)."""
+    """Use when the user asks for the news, headlines or what is happening in the world or on a topic. topic: optional search term (Google News); omit for top world headlines from Al Jazeera, DW and Real News. limit 1-10 (default 5). Returns one headline per line."""
     _check_limit(limit)
     topic = (topic or "").strip()
     if topic:
@@ -104,15 +104,15 @@ def news_headlines(topic: str | None = None, limit: int = 5) -> str:
 
 
 @mcp.tool()
-def simonwillison_latest(limit: int = 5) -> str:
-    """Latest Simon Willison weblog posts (AI/dev). Use for his blog, not general news. limit: 1-10 (default 5)."""
+def news_simon_willison(limit: int = 5) -> str:
+    """Use when the user asks about Simon Willison or his blog (AI and coding). limit 1-10 (default 5). Returns his latest posts, one per line."""
     _check_limit(limit)
     return _format("Simon Willison's Weblog", _entries(_fetch(SIMON_FEED)), limit, summary=True)
 
 
 @mcp.tool()
-def security_news(source: str, limit: int = 5) -> str:
-    """Security/hacker RSS headlines. Use for security news, not general headlines. source: krebs|schneier|lwn|2600. limit: 1-10 (default 5)."""
+def news_security(source: str, limit: int = 5) -> str:
+    """Use when the user asks for cybersecurity or hacking news. source: krebs|schneier|lwn|2600. limit 1-10 (default 5). Returns one headline per line."""
     _check_limit(limit)
     key = source.strip().lower()
     for k, (title, _u) in SECURITY_FEEDS.items():

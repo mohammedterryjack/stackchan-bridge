@@ -16,8 +16,8 @@
     }
   },
   "descriptions": {
-    "get_transcript": "What is said in a YouTube video, as plain text, about 1200 characters per page. video: ID from '(video X)' or a URL. If the reply ends 'more: next_cursor X', call again with next_cursor X to continue.",
-    "get_video_info": "One line about a YouTube video: title, channel, length, year. video: ID from '(video X)' or a URL."
+    "get_transcript": "Use when the user asks what a YouTube video says or wants it summarised. video: ID from '(video X)' or a URL. Returns the spoken text, about 1200 characters per page; if it ends 'more: next_cursor X', call again with next_cursor X.",
+    "get_video_info": "Use for quick facts about one YouTube video. video: ID from '(video X)' or a URL. Returns title, channel, length and year."
   },
   "param_desc": {
     "get_transcript": {

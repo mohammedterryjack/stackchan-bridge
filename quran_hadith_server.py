@@ -72,8 +72,8 @@ def _surah_num(surah: str | int) -> int:
 
 
 @mcp.tool()
-def read_quran(surah: str, ayah: int = 1, count: int = 3, arabic: bool = True) -> str:
-    """Read Quran verses aloud. surah: name (Al-Baqarah, Yasin, The Cow) or number, or 'surah:ayah' like '2:255' (then ayah is ignored). count 1-5 verses (default 3). arabic: include Arabic text if it fits. Reply ends '(quran 2:255)'; to continue, call again with the next ayah."""
+def quran_read(surah: str, ayah: int = 1, count: int = 3, arabic: bool = True) -> str:
+    """Use when the user asks to hear Quran verses or a surah. surah: name (Al-Baqarah, Yasin, The Cow) or number, or 'surah:ayah' like '2:255' (then ayah is ignored). count 1-5 (default 3). arabic: include Arabic if it fits. Returns verses ending '(quran 2:255)'; call again with the next ayah to continue."""
     s = str(surah).strip()
     m = re.fullmatch(r"(\d{1,3})\s*[:.]\s*(\d{1,3})", s)
     if m:
@@ -110,8 +110,8 @@ def read_quran(surah: str, ayah: int = 1, count: int = 3, arabic: bool = True) -
 
 
 @mcp.tool()
-def search_quran(query: str, limit: int = 3) -> str:
-    """Find Quran verses by English words (e.g. 'patience', 'mercy'). limit 1-5 (default 3). One line per verse ending '(quran s:a)'; use read_quran to read more."""
+def quran_search(query: str, limit: int = 3) -> str:
+    """Use when the user asks what the Quran says about a topic, e.g. 'patience'. query: English words. limit 1-5 (default 3). Returns one verse per line ending '(quran s:a)'; quran_read reads more."""
     q = (query or "").strip()
     if not q:
         raise ValueError("query required")
@@ -164,14 +164,14 @@ def _hadith(c: str, number: int, arabic: bool) -> str:
 
 
 @mcp.tool()
-def get_hadith(collection: str, number: int, arabic: bool = False) -> str:
-    """One hadith by collection and number. collection: bukhari|muslim|abudawud|tirmidhi|nasai|ibnmajah|malik|nawawi|qudsi. arabic: add Arabic if short. Reply ends '(bukhari 1)'."""
+def hadith_get(collection: str, number: int, arabic: bool = False) -> str:
+    """Use when the user asks for a specific hadith by collection and number, e.g. 'Bukhari 1'. collection: bukhari|muslim|abudawud|tirmidhi|nasai|ibnmajah|malik|nawawi|qudsi. arabic: add Arabic if short. Returns the hadith ending '(bukhari 1)'."""
     return _hadith(_coll(collection), int(number), arabic)
 
 
 @mcp.tool()
-def random_hadith(collection: str = "nawawi") -> str:
-    """A random hadith to read aloud. collection default nawawi (Forty Hadith); also bukhari, muslim, qudsi, etc."""
+def hadith_random(collection: str = "nawawi") -> str:
+    """Use when the user asks for a hadith or a saying of the Prophet without giving a number. collection default nawawi (Forty Hadith); also bukhari, muslim, qudsi, etc. Returns one hadith."""
     c = _coll(collection)
     tried = []
     for n in random.sample(range(1, COLLECTIONS[c][1] + 1), 5):

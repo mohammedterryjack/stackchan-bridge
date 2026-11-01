@@ -149,7 +149,7 @@ def _random_impl() -> str:
 
 @mcp.tool()
 def aesop_read(fable_id: int | None = None, title: str | None = None) -> str:
-    """Use when the user asks for a specific Aesop fable, e.g. 'tell me the tortoise and the hare'. Give fable_id (from a (fable N) reference) or part of the title. Returns the whole fable and its moral."""
+    """Use when the user asks for a specific Aesop fable, e.g. 'tell me the tortoise and the hare'. fable_id from '(fable N)', or title: part of the title. Returns the whole fable and its moral."""
     return _run(_read_impl, fable_id, title)
 
 

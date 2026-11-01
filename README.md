@@ -8,17 +8,17 @@ A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, c
 ## Servers and tools (16 servers, 42 tools)
 - calculator: calculator
 - web-search: web_search, web_read
-- time: clock_time, convert_time (city or timezone required, no default)
+- time: time_now, time_convert (city or timezone required, no default)
 - hackernews: hn_top_stories, hn_search, hn_story, hn_user
 - reddit: reddit_posts, reddit_post
 - youtube: youtube_transcript, youtube_info
 - youtube-search: youtube_search
-- news: news_headlines, simonwillison_latest, security_news
+- news: news_headlines, news_simon_willison, news_security
 - arxiv: arxiv_search, arxiv_read, arxiv_abstract
 - zines: zine_search, zine_read
 - darknet-diaries: darknet_episodes, darknet_episode, darknet_transcript, darknet_find
-- prayer-times: prayer_times, next_prayer, prayer_alarms (city and country required, no default)
-- quran-hadith: read_quran, search_quran, get_hadith, random_hadith
+- prayer-times: prayer_times, prayer_next, prayer_alarms (city and country required, no default)
+- quran-hadith: quran_read, quran_search, hadith_get, hadith_random
 - tanakh: tanakh_verse, tanakh_chapter, tanakh_search (Sefaria, English)
 - rumi: rumi_read, rumi_search, rumi_random (Nicholson's English Mathnawi, Books 1-6, via HF dataset)
 - aesop: aesop_read, aesop_search, aesop_random (Townsend's Aesop's Fables, 313 fables, via HF dataset)
@@ -55,7 +55,7 @@ Then ask Stack-chan something like "what time is it in Tokyo?" or "read Psalm 23
 `tools/sc_t.py` starts one server inside the running container and calls a tool the way Stack-chan would, printing the reply, size and time taken:
 
     docker exec -i stackchan-bridge python - hackernews list < tools/sc_t.py
-    docker exec -i stackchan-bridge python - time clock_time '{"timezone": "Tokyo"}' < tools/sc_t.py
+    docker exec -i stackchan-bridge python - time time_now '{"timezone": "Tokyo"}' < tools/sc_t.py
 
 The first argument is a server name from `mcp_config.json`; the second is `list` or a tool name; the third is JSON arguments (use `list` to see each tool's parameter names). `tools/sc_chain.py` runs a JSON list of `[tool, args]` calls in one session.
 

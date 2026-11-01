@@ -120,7 +120,7 @@ def prayer_times(
     date: str = "today",
     method: int = DEFAULT_METHOD,
 ) -> str:
-    """All prayer times for a day. city and country are required (e.g. Leeds, UK); if the user did not say where, ask which city they are in first. date: today, tomorrow or YYYY-MM-DD (default today)."""
+    """Use when the user asks for Islamic prayer (salah) times for a day. city and country required (e.g. Leeds, UK); if the user did not say where, ask which city first. date: today, tomorrow or YYYY-MM-DD (default today). Returns all five times."""
     city, country = _need(city, country)
     d = (date or "").strip().lower()
     if d in ("", "today"):
@@ -146,12 +146,12 @@ def prayer_times(
 
 
 @mcp.tool()
-def next_prayer(
+def prayer_next(
     city: str,
     country: str,
     method: int = DEFAULT_METHOD,
 ) -> str:
-    """When the next prayer is and how long until it. city and country are required (e.g. Leeds, UK); if the user did not say where, ask which city they are in first."""
+    """Use when the user asks when the next prayer is or how long until it. city and country required (e.g. Leeds, UK); if the user did not say where, ask which city first. Returns the next prayer, its time and the time left."""
     city, country = _need(city, country)
     now = _local_now(city, country, method)
     info = _fetch_timings(_today_str(now), city, country, method)
@@ -184,7 +184,7 @@ def next_prayer(
 
 @mcp.tool()
 def prayer_alarms(city: str, country: str, prayer: str, method: int = DEFAULT_METHOD) -> str:
-    """Seconds until a prayer, for setting a prayer reminder/alarm. city and country required (e.g. Leeds, UK); if the user did not say where, ask which city they are in first. prayer: fajr, dhuhr, asr, maghrib, isha, or 1-5 (1 Fajr, 2 Dhuhr, 3 Asr, 4 Maghrib, 5 Isha), or all. Then call self.robot.create_reminder once per line with that duration_seconds, message and repeat=false. Reminders are one-off and lost if the robot restarts."""
+    """Use when the user asks for a prayer reminder or alarm. city and country required (e.g. Leeds, UK); if the user did not say where, ask which city first. prayer: fajr, dhuhr, asr, maghrib, isha, or 1-5 (1 Fajr ... 5 Isha), or all. Returns seconds until each prayer; then call self.robot.create_reminder once per line with that duration_seconds, message and repeat=false. Reminders are one-off and lost if the robot restarts."""
     city, country = _need(city, country)
     p = (prayer or "").strip().lower()
     names = {n.lower(): n for n in SALAH_ORDER}

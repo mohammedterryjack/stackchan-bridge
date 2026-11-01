@@ -174,19 +174,19 @@ def _random_impl() -> str:
 
 @mcp.tool()
 def rumi_read(book: int, verse: int | None = None, section: str | None = None) -> str:
-    """Read Rumi's Mathnawi (Nicholson's English, Books 1-6) from a verse number or a section-title phrase. Returns about a page and a Next: hint to continue."""
+    """Use when the user asks to read Rumi's Mathnawi at a book and verse or a section title. book 1-6; verse number or section phrase. Returns about a page and a Next: hint to continue."""
     return _run(_read_impl, book, verse, section)
 
 
 @mcp.tool()
 def rumi_search(query: str, limit: int = 3) -> str:
-    """Search the Mathnawi (English, Books 1-6) for a word or phrase. limit 1-5. Each line ends with its reference; use rumi_read to read on."""
+    """Use when the user wants Rumi on a theme, e.g. 'Rumi on love'. limit 1-5. Returns lines ending (Mathnawi book:verse); rumi_read reads on."""
     return _run(_search_impl, query, limit)
 
 
 @mcp.tool()
 def rumi_random() -> str:
-    """A random passage from Rumi's Mathnawi (English, Books 1-6) with its reference."""
+    """Use when the user asks for any Rumi poem, passage or wisdom. Returns one random Mathnawi passage with its reference."""
     return _run(_random_impl)
 
 
