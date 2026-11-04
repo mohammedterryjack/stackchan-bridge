@@ -61,7 +61,9 @@ ethiopian-canon|ethiopian_read|{"book":"Qalementos","chapter":1,"verse_start":1,
 ethiopian-canon|ethiopian_read|{"book":"Kitab al-Magall","chapter":1,"verse_start":1,"verse_end":2}
 ethiopian-canon|ethiopian_search|{"query":"Pierre","book":"Qalementos 2","limit":2}
 ethiopian-canon|ethiopian_search|{"query":"bishop","book":"Didascalia","limit":2}
-ethiopian-canon|ethiopian_read|{"book":"Abtelis","chapter":1,"verse_start":1,"verse_end":1}
+ethiopian-canon|ethiopian_read|{"book":"Gessew","chapter":1,"verse_start":1,"verse_end":1}
 ethiopian-canon|ethiopian_read|{"book":"Apostolic Canons","chapter":1,"verse_start":1,"verse_end":1}
 ethiopian-canon|ethiopian_read|{"book":"Arabic Sinodos","chapter":1,"verse_start":1,"verse_end":1}
 ethiopian-canon|ethiopian_search|{"query":"bishop","book":"Apostolic Constitutions","limit":2}
+ethiopian-canon|ethiopian_read|{"book":"Apocalypse of Peter","chapter":1,"verse_start":1,"verse_end":1}
+ethiopian-canon|ethiopian_search|{"query":"Clement","book":"mingana","limit":2}
