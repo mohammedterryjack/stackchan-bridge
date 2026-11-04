@@ -42,3 +42,13 @@ sufi-classics|jilani_contents|{}
 sufi-classics|jilani_read|{"chapter":1}
 sufi-classics|jilani_search|{"query":"ramadan","limit":2}
 sufi-classics|jilani_random|{}
+gospel|gospel_books|{}
+gospel|gospel_read|{"book":"John","chapter":3,"verse_start":16,"verse_end":17}
+gospel|gospel_read|{"book":"Barnabas","chapter":1}
+gospel|gospel_search|{"query":"good shepherd","limit":2}
+gospel|gospel_random|{"book":"barnabas"}
+ethiopian-canon|ethiopian_books|{}
+ethiopian-canon|ethiopian_read|{"book":"Enoch","chapter":6,"verse_start":1,"verse_end":3}
+ethiopian-canon|ethiopian_read|{"book":"2 Meqabyan","chapter":1}
+ethiopian-canon|ethiopian_search|{"query":"watchers","book":"enoch","limit":2}
+ethiopian-canon|ethiopian_random|{"book":"Jubilees"}

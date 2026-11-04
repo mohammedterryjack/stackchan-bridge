@@ -249,6 +249,30 @@
         "MCP_TOOL_DEADLINE_S": "8",
         "PYTHONUNBUFFERED": "1"
       }
+    },
+    "gospel": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/gospel_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "ethiopian-canon": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/ethiopian_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
     }
   }
 }

@@ -5,7 +5,7 @@ A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, c
 ## How it works
 `mcp_pipe.py` opens a WebSocket to your xiaozhi.me agent's MCP endpoint and starts every server listed in `mcp_config.json` as a child process (stdio). When you talk to Stack-chan, the Xiaozhi cloud can call these tools and read the result aloud. Tools are only used while someone is talking to the robot.
 
-## Servers and tools (20 servers, 64 tools)
+## Servers and tools (22 servers, 72 tools)
 - calculator: calculator
 - web-search: web_search, web_read
 - time: time_now, time_convert (city or timezone required, no default)
@@ -25,6 +25,8 @@ A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, c
 - hadith-commentary: bahjat_read, bahjat_search, bahjat_random (Ibn Abi Jamrah's Bahjat al-Nufus, classical Arabic, via HF dataset; search normalises alif, ya, ta marbuta and diacritics)
 - prophet-dreams: dreams_read, dreams_search, dreams_random, dreams_sources (dreams others saw of the Prophet from al-Mara'i al-Hisan (Ibn Abi Jamrah), Sa'adat al-Darayn (al-Nabhani), al-Manamat (Ibn Abi al-Dunya) and al-Mustaghithin billah (Ibn Bashkuwal), classical Arabic, via HF dataset; dream_number is per source, and without `source` the read defaults to al-Mara'i)
 - sufi-classics: ghazali_contents/read/search/random (al-Ghazali, Ihya Ulum al-Din), ibnarabi_contents/read/search/random (Ibn Arabi, al-Futuhat al-Makkiyya), jilani_contents/read/search/random (Abd al-Qadir al-Jilani, al-Ghunya li-Talibi Tariq al-Haqq); original Arabic via HF dataset, Stack-chan explains or translates
+- gospel: gospel_books, gospel_read, gospel_search, gospel_random (Matthew, Mark, Luke, John from the World English Bible and the Gospel of Barnabas, Ragg 1907; one row per verse via HF dataset)
+- ethiopian-canon: ethiopian_books, ethiopian_read, ethiopian_search, ethiopian_random (Ethiopian Orthodox canon books not in the Tanakh or gospel tools: 1 Enoch, Jubilees, 1-3 Meqabyan, 4 Baruch, the deuterocanon and Acts to Revelation)
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
 
 No API keys are needed: every server uses free, keyless sources.
@@ -93,10 +95,12 @@ The first argument is a server name from `mcp_config.json`; the second is `list`
 - Bahjat al-Nufus: [MTerryJack/bahjat-al-nufus](https://huggingface.co/datasets/MTerryJack/bahjat-al-nufus). Arabic only. The commentary is OCR of an old Egyptian print (archive.org BahjatNufus) and the hadith text comes from OpenITI (CC BY-NC-SA 4.0). The author died 695/699 AH (about 1296-1300 CE). The OCR is noisy and some hadith/commentary boundaries are low confidence; see the dataset card. Replies tell the AI to translate or explain the Arabic.
 - Dreams of the Prophet: [MTerryJack/prophet-dreams](https://huggingface.co/datasets/MTerryJack/prophet-dreams), with a `source` column and a per-row `licence` column. All four works are public domain. al-Manamat is Shamela typed text (main text only). al-Mara'i al-Hisan is archive.org OCR of poor quality. Sa'adat al-Darayn is typed Shamela text with the copyist's notes removed. al-Mustaghithin is the read.shamela.ws main text without the editor's apparatus. Only accounts of the Prophet being seen in a dream are included.
 - Sufi classics: [MTerryJack/sufi-classics](https://huggingface.co/datasets/MTerryJack/sufi-classics), derived from the [OpenITI](https://openiti.org) corpus (CC BY-NC-SA 4.0): Ihya (Shamela0009472), Futuhat (JK009237), Ghunya (Sham19Y0017817). Markup removed, ~2KB chunks; chapter numbers are sequential per book (1 = introduction), so Futuhat chapter N is not always bab N.
+- Gospels: [MTerryJack/gospels](https://huggingface.co/datasets/MTerryJack/gospels): Matthew, Mark, Luke and John from the [World English Bible](https://ebible.org/engwebu/) (public domain); Gospel of Barnabas, Lonsdale and Laura Ragg's 1907 translation (public domain) via sacred-texts.com, one paragraph per verse.
+- Ethiopian canon: [MTerryJack/ethiopian-canon](https://huggingface.co/datasets/MTerryJack/ethiopian-canon), with a per-row `source` column: 1 Enoch and Jubilees from R. H. Charles (1917, public domain); deuterocanon and Acts to Revelation from the World English Bible (public domain); 1-3 Meqabyan from Wikisource's community translations (CC BY-SA 4.0; 1 Meqabyan has chapters 1-7 only); 4 Baruch from Kraft and Purintun's CCAT edition (free for non-commercial use). Sinodos, the Book of the Covenant, Ethiopic Clement and the Didascalia are not included: no public-domain English text was found.
 - Zines: [MTerryJack/hacker-zines](https://huggingface.co/datasets/MTerryJack/hacker-zines).
 - Prayer times: [AlAdhan](https://aladhan.com) API.
 - Maps: [OpenStreetMap](https://www.openstreetmap.org/copyright) data via Nominatim (please respect its usage policy) and routing via the public [OSRM](https://project-osrm.org) demo server. Map data (c) OpenStreetMap contributors, ODbL.
 - Web search: DuckDuckGo. News: Al Jazeera, DW, The Real News Network, Reuters (via Google News, reuters.com only), Google News, Simon Willison, Krebs on Security, Schneier on Security, LWN, 2600 RSS feeds. Darknet Diaries: darknetdiaries.com and its podcast feed.
 - Third-party MCP servers: duckduckgo-mcp-server, mcp-hn, mcp-server-reddit, mcp-youtube-transcript, arxiv-mcp-server. `mcp_pipe.py` is adapted from the Xiaozhi mcp-calculator example pipe.
 
-Debugging: the hadith-commentary, prophet-dreams and sufi-classics servers log one stderr line per tool call (`tool=… args=… ids=[…] ms=… ok|error=…`) and, at startup, the pinned dataset revision and row counts; they exit at startup if the dataset cannot load. See `docker logs stackchan-bridge`.
+Debugging: the hadith-commentary, prophet-dreams, sufi-classics, gospel and ethiopian-canon servers log one stderr line per tool call (`tool=… args=… ids=[…] ms=… ok|error=…`) and, at startup, the pinned dataset revision and row counts; they exit at startup if the dataset cannot load. See `docker logs stackchan-bridge`.
