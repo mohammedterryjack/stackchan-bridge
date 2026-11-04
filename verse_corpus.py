@@ -26,7 +26,7 @@ def _k(s: str) -> str:
     return re.sub(r"[^a-z0-9]", "", (s or "").lower())
 
 
-LANGS = {"gez": "Ge'ez (Classical Ethiopic)", "grc": "Greek", "ar": "Arabic"}
+LANGS = {"gez": "Ge'ez (Classical Ethiopic)", "grc": "Greek", "ar": "Arabic", "fr": "French"}
 
 
 def _lang_note(lang: str) -> str:
