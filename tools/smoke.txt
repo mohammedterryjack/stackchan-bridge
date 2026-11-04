@@ -30,3 +30,15 @@ prophet-dreams|dreams_read|{"dream_number":1,"source":"Ibn Abi al-Dunya"}
 prophet-dreams|dreams_search|{"query":"water","limit":2}
 prophet-dreams|dreams_random|{"source":"المنامات"}
 hadith-commentary|bahjat_search|{"query":"dream","limit":2}
+sufi-classics|ghazali_contents|{"query":"التوبه"}
+sufi-classics|ghazali_read|{"chapter":1}
+sufi-classics|ghazali_search|{"query":"patience","limit":2}
+sufi-classics|ghazali_random|{}
+sufi-classics|ibnarabi_contents|{"page":2}
+sufi-classics|ibnarabi_read|{"chapter":2,"part":1}
+sufi-classics|ibnarabi_search|{"query":"الروح","limit":2}
+sufi-classics|ibnarabi_random|{}
+sufi-classics|jilani_contents|{}
+sufi-classics|jilani_read|{"chapter":1}
+sufi-classics|jilani_search|{"query":"ramadan","limit":2}
+sufi-classics|jilani_random|{}

@@ -1,11 +1,11 @@
 # Stack-chan MCP bridge
 
-A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, maps and more. It runs 19 local MCP servers exposing 52 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
+A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, Sufi classics (al-Ghazali, Ibn Arabi, al-Jilani), maps and more. It runs 20 local MCP servers exposing 64 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
 
 ## How it works
 `mcp_pipe.py` opens a WebSocket to your xiaozhi.me agent's MCP endpoint and starts every server listed in `mcp_config.json` as a child process (stdio). When you talk to Stack-chan, the Xiaozhi cloud can call these tools and read the result aloud. Tools are only used while someone is talking to the robot.
 
-## Servers and tools (16 servers, 42 tools)
+## Servers and tools (20 servers, 64 tools)
 - calculator: calculator
 - web-search: web_search, web_read
 - time: time_now, time_convert (city or timezone required, no default)
@@ -24,6 +24,7 @@ A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, c
 - aesop: aesop_read, aesop_search, aesop_random (Townsend's Aesop's Fables, 313 fables, via HF dataset)
 - hadith-commentary: bahjat_read, bahjat_search, bahjat_random (Ibn Abi Jamrah's Bahjat al-Nufus, classical Arabic, via HF dataset; search normalises alif, ya, ta marbuta and diacritics)
 - prophet-dreams: dreams_read, dreams_search, dreams_random, dreams_sources (dreams others saw of the Prophet from al-Mara'i al-Hisan (Ibn Abi Jamrah), Sa'adat al-Darayn (al-Nabhani), al-Manamat (Ibn Abi al-Dunya) and al-Mustaghithin billah (Ibn Bashkuwal), classical Arabic, via HF dataset; dream_number is per source, and without `source` the read defaults to al-Mara'i)
+- sufi-classics: ghazali_contents/read/search/random (al-Ghazali, Ihya Ulum al-Din), ibnarabi_contents/read/search/random (Ibn Arabi, al-Futuhat al-Makkiyya), jilani_contents/read/search/random (Abd al-Qadir al-Jilani, al-Ghunya li-Talibi Tariq al-Haqq); original Arabic via HF dataset, Stack-chan explains or translates
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
 
 No API keys are needed: every server uses free, keyless sources.
@@ -40,7 +41,7 @@ No API keys are needed: every server uses free, keyless sources.
 
 The first `make setup` creates `.env` from `.env.example` and stops with a message. Open `.env` and set `MCP_ENDPOINT` to your endpoint: in xiaozhi.me, open the MCP endpoint settings for your agent and copy the `wss://...` address. Treat it like a password; anyone with it can attach tools to your robot. `.env` is gitignored. Then run `make setup` again.
 
-`make setup` checks Docker and Compose are installed and running, checks `.env` has a real `MCP_ENDPOINT` (it fails loudly otherwise; there are no defaults), then builds and starts only the `stackchan-bridge` container. The DuckDB httpfs extension the zines, Rumi, Aesop, hadith-commentary and prophet-dreams servers need is downloaded inside the Docker build for your machine's architecture (arm64 or amd64), so there is no manual download.
+`make setup` checks Docker and Compose are installed and running, checks `.env` has a real `MCP_ENDPOINT` (it fails loudly otherwise; there are no defaults), then builds and starts only the `stackchan-bridge` container. The DuckDB httpfs extension the zines, Rumi, Aesop, hadith-commentary, prophet-dreams and sufi-classics servers need is downloaded inside the Docker build for your machine's architecture (arm64 or amd64), so there is no manual download.
 
 | Command | What it does |
 |---|---|
@@ -91,10 +92,11 @@ The first argument is a server name from `mcp_config.json`; the second is `list`
 - Aesop: [MTerryJack/aesop-fables](https://huggingface.co/datasets/MTerryJack/aesop-fables), George Fyler Townsend's translation from Project Gutenberg eBook #21 (public domain).
 - Bahjat al-Nufus: [MTerryJack/bahjat-al-nufus](https://huggingface.co/datasets/MTerryJack/bahjat-al-nufus). Arabic only. The commentary is OCR of an old Egyptian print (archive.org BahjatNufus) and the hadith text comes from OpenITI (CC BY-NC-SA 4.0). The author died 695/699 AH (about 1296-1300 CE). The OCR is noisy and some hadith/commentary boundaries are low confidence; see the dataset card. Replies tell the AI to translate or explain the Arabic.
 - Dreams of the Prophet: [MTerryJack/prophet-dreams](https://huggingface.co/datasets/MTerryJack/prophet-dreams), with a `source` column and a per-row `licence` column. All four works are public domain. al-Manamat is Shamela typed text (main text only). al-Mara'i al-Hisan is archive.org OCR of poor quality. Sa'adat al-Darayn is typed Shamela text with the copyist's notes removed. al-Mustaghithin is the read.shamela.ws main text without the editor's apparatus. Only accounts of the Prophet being seen in a dream are included.
+- Sufi classics: [MTerryJack/sufi-classics](https://huggingface.co/datasets/MTerryJack/sufi-classics), derived from the [OpenITI](https://openiti.org) corpus (CC BY-NC-SA 4.0): Ihya (Shamela0009472), Futuhat (JK009237), Ghunya (Sham19Y0017817). Markup removed, ~2KB chunks; chapter numbers are sequential per book (1 = introduction), so Futuhat chapter N is not always bab N.
 - Zines: [MTerryJack/hacker-zines](https://huggingface.co/datasets/MTerryJack/hacker-zines).
 - Prayer times: [AlAdhan](https://aladhan.com) API.
 - Maps: [OpenStreetMap](https://www.openstreetmap.org/copyright) data via Nominatim (please respect its usage policy) and routing via the public [OSRM](https://project-osrm.org) demo server. Map data (c) OpenStreetMap contributors, ODbL.
 - Web search: DuckDuckGo. News: Al Jazeera, DW, The Real News Network, Reuters (via Google News, reuters.com only), Google News, Simon Willison, Krebs on Security, Schneier on Security, LWN, 2600 RSS feeds. Darknet Diaries: darknetdiaries.com and its podcast feed.
 - Third-party MCP servers: duckduckgo-mcp-server, mcp-hn, mcp-server-reddit, mcp-youtube-transcript, arxiv-mcp-server. `mcp_pipe.py` is adapted from the Xiaozhi mcp-calculator example pipe.
 
-Debugging: the hadith-commentary and prophet-dreams servers log one stderr line per tool call (`tool=… args=… ids=[…] ms=… ok|error=…`) and, at startup, the pinned dataset revision and row counts; they exit at startup if the dataset cannot load. See `docker logs stackchan-bridge`.
+Debugging: the hadith-commentary, prophet-dreams and sufi-classics servers log one stderr line per tool call (`tool=… args=… ids=[…] ms=… ok|error=…`) and, at startup, the pinned dataset revision and row counts; they exit at startup if the dataset cannot load. See `docker logs stackchan-bridge`.

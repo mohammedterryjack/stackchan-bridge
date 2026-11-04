@@ -237,6 +237,18 @@
         "MCP_TOOL_DEADLINE_S": "8",
         "PYTHONUNBUFFERED": "1"
       }
+    },
+    "sufi-classics": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/sufi_classics_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
     }
   }
 }
