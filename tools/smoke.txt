@@ -54,3 +54,8 @@ ethiopian-canon|ethiopian_read|{"book":"Qalementos","chapter":1,"verse_start":1,
 ethiopian-canon|ethiopian_search|{"query":"እግዚአብሔር","book":"4 Baruch","limit":1}
 ethiopian-canon|ethiopian_search|{"query":"watchers","book":"enoch","limit":2}
 ethiopian-canon|ethiopian_random|{"book":"Jubilees"}
+ethiopian-canon|ethiopian_read|{"book":"Didesqelya","chapter":1,"verse_start":1,"verse_end":2}
+ethiopian-canon|ethiopian_read|{"book":"Sinodos","chapter":1,"verse_start":1,"verse_end":2}
+ethiopian-canon|ethiopian_read|{"book":"Mashafa Kidan","chapter":1,"verse_start":1,"verse_end":2}
+ethiopian-canon|ethiopian_read|{"book":"Qalementos","chapter":1,"verse_start":1,"verse_end":2}
+ethiopian-canon|ethiopian_search|{"query":"bishop","book":"Didascalia","limit":2}
