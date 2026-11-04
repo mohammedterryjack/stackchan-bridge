@@ -69,3 +69,10 @@ ethiopian-canon|ethiopian_read|{"book":"Tobit","chapter":1,"verse_start":1,"vers
 ethiopian-canon|ethiopian_search|{"query":"ጴጥሮስ","book":"Acts","limit":2}
 ethiopian-canon|ethiopian_read|{"book":"didesqelya","chapter":1,"verse_start":1,"verse_end":2}
 ethiopian-canon|ethiopian_search|{"query":"ቀሌምንጦስ","book":"qalementos","limit":2}
+hilyat-al-awliya|hilya_people|{"query":"Bishr al-Hafi"}
+hilyat-al-awliya|hilya_people|{"page":2}
+hilyat-al-awliya|hilya_read|{"person":"Hasan al-Basri"}
+hilyat-al-awliya|hilya_read|{"person":"2","part":2}
+hilyat-al-awliya|hilya_search|{"query":"Fudayl zuhd","limit":2}
+hilyat-al-awliya|hilya_search|{"query":"Rabia","limit":2}
+hilyat-al-awliya|hilya_random|{}
