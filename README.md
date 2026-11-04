@@ -1,6 +1,6 @@
 # Stack-chan MCP bridge
 
-A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, maps and more. It runs 19 local MCP servers exposing 51 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
+A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, maps and more. It runs 19 local MCP servers exposing 52 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
 
 ## How it works
 `mcp_pipe.py` opens a WebSocket to your xiaozhi.me agent's MCP endpoint and starts every server listed in `mcp_config.json` as a child process (stdio). When you talk to Stack-chan, the Xiaozhi cloud can call these tools and read the result aloud. Tools are only used while someone is talking to the robot.
@@ -23,7 +23,7 @@ A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, c
 - rumi: rumi_read, rumi_search, rumi_random (Nicholson's English Mathnawi, Books 1-6, via HF dataset)
 - aesop: aesop_read, aesop_search, aesop_random (Townsend's Aesop's Fables, 313 fables, via HF dataset)
 - hadith-commentary: bahjat_read, bahjat_search, bahjat_random (Ibn Abi Jamrah's Bahjat al-Nufus, classical Arabic, via HF dataset; search normalises alif, ya, ta marbuta and diacritics)
-- prophet-dreams: dreams_read, dreams_search, dreams_random (dreams others saw of the Prophet from al-Mara'i al-Hisan (Ibn Abi Jamrah), Sa'adat al-Darayn (al-Nabhani) and al-Mustaghithin billah (Ibn Bashkuwal), classical Arabic, via HF dataset; dream_number is per source, and without `source` the read defaults to al-Mara'i)
+- prophet-dreams: dreams_read, dreams_search, dreams_random, dreams_sources (dreams others saw of the Prophet from al-Mara'i al-Hisan (Ibn Abi Jamrah), Sa'adat al-Darayn (al-Nabhani), al-Manamat (Ibn Abi al-Dunya) and al-Mustaghithin billah (Ibn Bashkuwal), classical Arabic, via HF dataset; dream_number is per source, and without `source` the read defaults to al-Mara'i)
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
 
 No API keys are needed: every server uses free, keyless sources.
@@ -90,9 +90,11 @@ The first argument is a server name from `mcp_config.json`; the second is `list`
 - Rumi: [MTerryJack/rumi-mathnawi](https://huggingface.co/datasets/MTerryJack/rumi-mathnawi), R. A. Nicholson's English translation. Books V-VI (1934) are public domain in the UK/EU but may still be under copyright in the US; see the dataset card.
 - Aesop: [MTerryJack/aesop-fables](https://huggingface.co/datasets/MTerryJack/aesop-fables), George Fyler Townsend's translation from Project Gutenberg eBook #21 (public domain).
 - Bahjat al-Nufus: [MTerryJack/bahjat-al-nufus](https://huggingface.co/datasets/MTerryJack/bahjat-al-nufus). Arabic only. The commentary is OCR of an old Egyptian print (archive.org BahjatNufus) and the hadith text comes from OpenITI (CC BY-NC-SA 4.0). The author died 695/699 AH (about 1296-1300 CE). The OCR is noisy and some hadith/commentary boundaries are low confidence; see the dataset card. Replies tell the AI to translate or explain the Arabic.
-- Dreams of the Prophet: [MTerryJack/prophet-dreams](https://huggingface.co/datasets/MTerryJack/prophet-dreams), with a `source` column and a per-row `licence` column. All three works are public domain. al-Mara'i al-Hisan is archive.org OCR of poor quality. Sa'adat al-Darayn is typed Shamela text with the copyist's notes removed. al-Mustaghithin is the read.shamela.ws main text without the editor's apparatus. Only accounts of the Prophet being seen in a dream are included.
+- Dreams of the Prophet: [MTerryJack/prophet-dreams](https://huggingface.co/datasets/MTerryJack/prophet-dreams), with a `source` column and a per-row `licence` column. All four works are public domain. al-Manamat is Shamela typed text (main text only). al-Mara'i al-Hisan is archive.org OCR of poor quality. Sa'adat al-Darayn is typed Shamela text with the copyist's notes removed. al-Mustaghithin is the read.shamela.ws main text without the editor's apparatus. Only accounts of the Prophet being seen in a dream are included.
 - Zines: [MTerryJack/hacker-zines](https://huggingface.co/datasets/MTerryJack/hacker-zines).
 - Prayer times: [AlAdhan](https://aladhan.com) API.
 - Maps: [OpenStreetMap](https://www.openstreetmap.org/copyright) data via Nominatim (please respect its usage policy) and routing via the public [OSRM](https://project-osrm.org) demo server. Map data (c) OpenStreetMap contributors, ODbL.
 - Web search: DuckDuckGo. News: Al Jazeera, DW, The Real News Network, Reuters (via Google News, reuters.com only), Google News, Simon Willison, Krebs on Security, Schneier on Security, LWN, 2600 RSS feeds. Darknet Diaries: darknetdiaries.com and its podcast feed.
 - Third-party MCP servers: duckduckgo-mcp-server, mcp-hn, mcp-server-reddit, mcp-youtube-transcript, arxiv-mcp-server. `mcp_pipe.py` is adapted from the Xiaozhi mcp-calculator example pipe.
+
+Debugging: the hadith-commentary and prophet-dreams servers log one stderr line per tool call (`tool=… args=… ids=[…] ms=… ok|error=…`) and, at startup, the pinned dataset revision and row counts; they exit at startup if the dataset cannot load. See `docker logs stackchan-bridge`.

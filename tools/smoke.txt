@@ -25,3 +25,8 @@ prophet-dreams|dreams_random|{}
 prophet-dreams|dreams_read|{"dream_number":1,"source":"Nabhani"}
 prophet-dreams|dreams_search|{"query":"النوم","limit":2,"source":"Bashkuwal"}
 prophet-dreams|dreams_random|{"source":"Sa'adat"}
+prophet-dreams|dreams_sources|{}
+prophet-dreams|dreams_read|{"dream_number":1,"source":"Ibn Abi al-Dunya"}
+prophet-dreams|dreams_search|{"query":"water","limit":2}
+prophet-dreams|dreams_random|{"source":"المنامات"}
+hadith-commentary|bahjat_search|{"query":"dream","limit":2}

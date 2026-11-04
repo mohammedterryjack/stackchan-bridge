@@ -167,7 +167,7 @@ def _search_impl(query: str, limit: int) -> str:
 
 
 def _random_impl() -> str:
-    b, a, e, sec, t = _q("SELECT book, verse_start, verse_end, section, text_en FROM rumi WHERE length(text_en) > 200 USING SAMPLE 1", [])[0]
+    b, a, e, sec, t = _q("SELECT book, verse_start, verse_end, section, text_en FROM rumi WHERE length(text_en) > 200 ORDER BY random() LIMIT 1", [])[0]
     head = f"{sec}. " if sec else ""
     return f"{head}{_speak(t)} {_ref(b, a, e)}\nNext: rumi_read(book={b}, verse={e + 1})"
 
