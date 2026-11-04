@@ -213,6 +213,30 @@
         "MCP_TOOL_DEADLINE_S": "8",
         "PYTHONUNBUFFERED": "1"
       }
+    },
+    "hadith-commentary": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/hadith_commentary_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "prophet-dreams": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "/app/prophet_dreams_server.py"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "MCP_TOOL_DEADLINE_S": "8",
+        "PYTHONUNBUFFERED": "1"
+      }
     }
   }
 }

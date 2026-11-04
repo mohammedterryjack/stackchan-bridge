@@ -1,6 +1,6 @@
 # Stack-chan MCP bridge
 
-A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, maps and more. It runs 17 local MCP servers exposing 45 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
+A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, maps and more. It runs 19 local MCP servers exposing 51 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
 
 ## How it works
 `mcp_pipe.py` opens a WebSocket to your xiaozhi.me agent's MCP endpoint and starts every server listed in `mcp_config.json` as a child process (stdio). When you talk to Stack-chan, the Xiaozhi cloud can call these tools and read the result aloud. Tools are only used while someone is talking to the robot.
@@ -22,6 +22,8 @@ A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, c
 - tanakh: tanakh_verse, tanakh_chapter, tanakh_search (Sefaria, English)
 - rumi: rumi_read, rumi_search, rumi_random (Nicholson's English Mathnawi, Books 1-6, via HF dataset)
 - aesop: aesop_read, aesop_search, aesop_random (Townsend's Aesop's Fables, 313 fables, via HF dataset)
+- hadith-commentary: bahjat_read, bahjat_search, bahjat_random (Ibn Abi Jamrah's Bahjat al-Nufus, classical Arabic, via HF dataset; search normalises alif, ya, ta marbuta and diacritics)
+- prophet-dreams: dreams_read, dreams_search, dreams_random (dreams others saw of the Prophet, starting with Ibn Abi Jamrah's al-Mara'i al-Hisan, classical Arabic, via HF dataset; optional source filter)
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
 
 No API keys are needed: every server uses free, keyless sources.
@@ -38,7 +40,7 @@ No API keys are needed: every server uses free, keyless sources.
 
 The first `make setup` creates `.env` from `.env.example` and stops with a message. Open `.env` and set `MCP_ENDPOINT` to your endpoint: in xiaozhi.me, open the MCP endpoint settings for your agent and copy the `wss://...` address. Treat it like a password; anyone with it can attach tools to your robot. `.env` is gitignored. Then run `make setup` again.
 
-`make setup` checks Docker and Compose are installed and running, checks `.env` has a real `MCP_ENDPOINT` (it fails loudly otherwise; there are no defaults), then builds and starts only the `stackchan-bridge` container. The DuckDB httpfs extension the zines, Rumi and Aesop servers need is downloaded inside the Docker build for your machine's architecture (arm64 or amd64), so there is no manual download.
+`make setup` checks Docker and Compose are installed and running, checks `.env` has a real `MCP_ENDPOINT` (it fails loudly otherwise; there are no defaults), then builds and starts only the `stackchan-bridge` container. The DuckDB httpfs extension the zines, Rumi, Aesop, hadith-commentary and prophet-dreams servers need is downloaded inside the Docker build for your machine's architecture (arm64 or amd64), so there is no manual download.
 
 | Command | What it does |
 |---|---|
@@ -69,7 +71,7 @@ The first argument is a server name from `mcp_config.json`; the second is `list`
       make setup
 
 ## Privacy and security
-- The container runs as a non-root user with a read-only filesystem, all capabilities dropped and only `/tmp` as scratch space. Nothing is written to disk; the zines, Rumi and Aesop datasets (a few MB) are loaded into memory at start-up.
+- The container runs as a non-root user with a read-only filesystem, all capabilities dropped and only `/tmp` as scratch space. Nothing is written to disk; the zines, Rumi, Aesop, Bahjat al-Nufus and al-Mara'i datasets (a few MB) are loaded into memory at start-up.
 - Tool queries go to the public services listed below (e.g. search terms to DuckDuckGo, places to OpenStreetMap). Location tools never assume a default location; Stack-chan has to ask where you are.
 - Keep `.env` private and never commit it (it's in `.gitignore`).
 
@@ -87,6 +89,8 @@ The first argument is a server name from `mcp_config.json`; the second is `list`
 - Quran: [alquran.cloud](https://alquran.cloud) API. Hadith: [fawazahmed0/hadith-api](https://github.com/fawazahmed0/hadith-api) via jsDelivr.
 - Rumi: [MTerryJack/rumi-mathnawi](https://huggingface.co/datasets/MTerryJack/rumi-mathnawi), R. A. Nicholson's English translation. Books V-VI (1934) are public domain in the UK/EU but may still be under copyright in the US; see the dataset card.
 - Aesop: [MTerryJack/aesop-fables](https://huggingface.co/datasets/MTerryJack/aesop-fables), George Fyler Townsend's translation from Project Gutenberg eBook #21 (public domain).
+- Bahjat al-Nufus: [MTerryJack/bahjat-al-nufus](https://huggingface.co/datasets/MTerryJack/bahjat-al-nufus). Arabic only. The commentary is OCR of an old Egyptian print (archive.org BahjatNufus) and the hadith text comes from OpenITI (CC BY-NC-SA 4.0). The author died 695/699 AH (about 1296-1300 CE). The OCR is noisy and some hadith/commentary boundaries are low confidence; see the dataset card. Replies tell the AI to translate or explain the Arabic.
+- Dreams of the Prophet: [MTerryJack/al-maraai-al-hisan](https://huggingface.co/datasets/MTerryJack/al-maraai-al-hisan). Arabic OCR of al-Mara'i al-Hisan from archive.org (public-domain classical text) with a `source` column for adding further collections once their licences are checked.
 - Zines: [MTerryJack/hacker-zines](https://huggingface.co/datasets/MTerryJack/hacker-zines).
 - Prayer times: [AlAdhan](https://aladhan.com) API.
 - Maps: [OpenStreetMap](https://www.openstreetmap.org/copyright) data via Nominatim (please respect its usage policy) and routing via the public [OSRM](https://project-osrm.org) demo server. Map data (c) OpenStreetMap contributors, ODbL.
