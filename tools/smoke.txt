@@ -67,3 +67,5 @@ ethiopian-canon|ethiopian_read|{"book":"Arabic Sinodos","chapter":1,"verse_start
 ethiopian-canon|ethiopian_search|{"query":"bishop","book":"Apostolic Constitutions","limit":2}
 ethiopian-canon|ethiopian_read|{"book":"Apocalypse of Peter","chapter":1,"verse_start":1,"verse_end":1}
 ethiopian-canon|ethiopian_search|{"query":"Clement","book":"mingana","limit":2}
+ethiopian-canon|ethiopian_read|{"book":"didesqelya","chapter":1,"verse_start":1,"verse_end":2}
+ethiopian-canon|ethiopian_search|{"query":"ቀሌምንጦስ","book":"qalementos","limit":2}
