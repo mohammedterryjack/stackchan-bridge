@@ -26,6 +26,13 @@ def _k(s: str) -> str:
     return re.sub(r"[^a-z0-9]", "", (s or "").lower())
 
 
+LANGS = {"gez": "Ge'ez (Classical Ethiopic)", "grc": "Greek", "ar": "Arabic"}
+
+
+def _lang_note(lang: str) -> str:
+    return "" if lang in (None, "en") else f" [Source text in {LANGS.get(lang, lang)}, no English in this dataset: translate or explain it for the user.]"
+
+
 class Corpus:
     def __init__(self, name: str, repo: str, pfx: str, books: list[str], aliases: dict[str, str]):
         self.repo, self.pfx, self.books, self.aliases = repo, pfx, books, aliases
@@ -42,7 +49,9 @@ class Corpus:
         url = f"hf://datasets/{self.repo}@{rev}/data/train.parquet"
         con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
         con.execute("LOAD httpfs")
-        con.execute(f"CREATE TABLE t AS SELECT id, book_key, book, chapter, verse, text, source, lower(text) AS lt FROM read_parquet('{url}')")
+        cols = [d[0] for d in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{url}')").fetchall()]
+        lang = "language" if "language" in cols else "'en'"
+        con.execute(f"CREATE TABLE t AS SELECT id, book_key, book, chapter, verse, text, source, {lang} AS lang, lower(text) AS lt FROM read_parquet('{url}')")
         rows = con.execute("SELECT book_key, any_value(book), min(id), count(*), count(DISTINCT chapter) FROM t GROUP BY 1 ORDER BY 3").fetchall()
         got = [r[0] for r in rows]
         missing = set(self.books) - set(got)
@@ -102,9 +111,9 @@ class Corpus:
         if not 1 <= s <= vmax and not (s == 0 and bk == "barnabas") or e < s:
             raise ValueError(f"{name} {c} has verses 1 to {vmax}; got {s}-{e}.")
         e = min(e, s + MAX_VERSES - 1)
-        rows = self.q("SELECT id, verse, text FROM t WHERE book_key = ? AND chapter = ? AND verse BETWEEN ? AND ? ORDER BY verse", [bk, c, s, e])
+        rows = self.q("SELECT id, verse, text, lang FROM t WHERE book_key = ? AND chapter = ? AND verse BETWEEN ? AND ? ORDER BY verse", [bk, c, s, e])
         out, last = [], s - 1
-        for rid, v, txt in rows:
+        for rid, v, txt, _ in rows:
             if out and sum(len(x) for x in out) + len(txt) > MAX_CHARS:
                 break
             out.append(f"{v} {txt}")
@@ -114,12 +123,12 @@ class Corpus:
             raise ValueError(f"{name} {c}:{s}-{e} has no verses in this text.")
         ref = f"{name} {c}:{s}" + (f"-{last}" if last > s else "")
         nxt = f"{self.pfx}_read('{name}', {c}, {last + 1})" if last < vmax else (f"{self.pfx}_read('{name}', {c + 1})" if c < hi else "end of book")
-        return " ".join(out)[:MAX_CHARS + 400] + f" ({ref}). Next: {nxt}"
+        return " ".join(out)[:MAX_CHARS + 400] + f" ({ref}).{_lang_note(rows[0][3])} Next: {nxt}"
 
     def search_impl(self, query: str, book: str | None, limit: int) -> str:
-        words = re.findall(r"[a-z0-9']+", (query or "").lower())
+        words = re.findall(r"\w[\w']*", (query or "").lower())
         if not words:
-            raise ValueError("query must contain English words.")
+            raise ValueError("query must contain words (English, or Ge'ez for Ge'ez books).")
         if not 1 <= int(limit) <= MAX_LIMIT:
             raise ValueError(f"limit {limit} is out of range: use 1 to {MAX_LIMIT}.")
         f, fp, scope = "", [], "all books"
@@ -128,7 +137,7 @@ class Corpus:
             f, fp = " AND book_key = ?", [bk]
         phrase = " ".join(words)
         where = " AND ".join("regexp_matches(lt, ?)" for _ in words)
-        pats = [rf"\b{re.escape(w)}" for w in words]
+        pats = [rf"\b{re.escape(w)}" if w.isascii() else re.escape(w) for w in words]
         rows = self.q(f"SELECT id, book, chapter, verse, text FROM t WHERE {where}{f} ORDER BY contains(lt, ?) DESC, id LIMIT ?", pats + fp + [phrase, int(limit)])
         total = self.q(f"SELECT count(*) FROM t WHERE {where}{f}", pats + fp)[0][0]
         if not rows:
@@ -142,9 +151,9 @@ class Corpus:
         if book:
             bk, _ = self.book(book)
             f, fp = " AND book_key = ?", [bk]
-        rid, b, c, v, t = self.q(f"SELECT id, book, chapter, verse, text FROM t WHERE length(text) > 60{f} ORDER BY random() LIMIT 1", fp)[0]
+        rid, b, c, v, t, lg = self.q(f"SELECT id, book, chapter, verse, text, lang FROM t WHERE length(text) > 60{f} ORDER BY random() LIMIT 1", fp)[0]
         note(rid)
-        return f"{t} ({b} {c}:{v}). Next: {self.pfx}_read('{b}', {c}, {v + 1}) or {self.pfx}_random()."
+        return f"{t} ({b} {c}:{v}).{_lang_note(lg)} Next: {self.pfx}_read('{b}', {c}, {v + 1}) or {self.pfx}_random()."
 
     def register(self, mcp: FastMCP, docs: dict[str, str]) -> None:
         def books() -> str:
