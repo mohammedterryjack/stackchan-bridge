@@ -22,3 +22,6 @@ hadith-commentary|bahjat_random|{}
 prophet-dreams|dreams_read|{"dream_number":1}
 prophet-dreams|dreams_search|{"query":"جبريل","limit":2}
 prophet-dreams|dreams_random|{}
+prophet-dreams|dreams_read|{"dream_number":1,"source":"Nabhani"}
+prophet-dreams|dreams_search|{"query":"النوم","limit":2,"source":"Bashkuwal"}
+prophet-dreams|dreams_random|{"source":"Sa'adat"}

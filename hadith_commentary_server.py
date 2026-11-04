@@ -169,7 +169,7 @@ def _search_impl(query: str, limit: int) -> str:
 
 
 def _random_impl() -> str:
-    hn = _q("SELECT hadith_number FROM bahja WHERE alignment_confidence = 'high' USING SAMPLE 1", [])[0][0]
+    hn = _q("SELECT hadith_number FROM bahja WHERE alignment_confidence = 'high' ORDER BY random() LIMIT 1", [])[0][0]
     return _read_impl(hn, 1)
 
 
