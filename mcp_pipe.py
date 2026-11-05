@@ -295,6 +295,9 @@ async def pipe_websocket_to_process(websocket, process_holder, target, pending_c
                 session_state["initialized"] = False
             elif isinstance(msg, dict) and msg.get("method") == "notifications/initialized":
                 session_state["initialized"] = True
+            if isinstance(msg, dict) and msg.get("method") == "tools/call" and target == MORE_HOST and msg["params"].get("name") == MORE_TOOL:
+                await websocket.send(more_text_response(msg))
+                continue
             if isinstance(msg, dict) and msg.get("method") == "tools/call":
                 tool = msg["params"]["name"]
                 pending_calls[msg["id"]] = (tool, time.monotonic())
@@ -360,6 +363,102 @@ def _slim_payload(payload: str) -> str:
     return json.dumps(msg, ensure_ascii=False) if changed else payload
 
 
+
+# ---- Reply length cap: long tool replies make Stack-chan's TTS glitch. Every text reply over
+# CAP_MAX chars is split at sentence/verse/line boundaries into ~CAP_TARGET-char parts; part 1 is
+# returned with a note, later parts come from the more_text tool (served here, registered on MORE_HOST).
+CAP_TARGET = int(os.environ.get("MCP_REPLY_TARGET", "750"))
+CAP_MAX = int(os.environ.get("MCP_REPLY_MAX", "1000"))
+MORE_TOOL = "more_text"
+MORE_HOST = "calculator"
+_PAGES = {"tool": None, "parts": []}
+_SENT = re.compile(r"(?<=[.!?\u061F\u06D4\u1362\u1361;:])\s+|(?<=[\u3002])")
+
+
+def _units(text: str, size: int) -> list[str]:
+    out = []
+    for line in text.split("\n"):
+        for sent in (_SENT.split(line) if len(line) > size else [line]):
+            while len(sent) > size:
+                cut = sent.rfind(" ", 0, size)
+                cut = cut if cut > size // 2 else size
+                out.append(sent[:cut]); sent = sent[cut:].lstrip()
+            out.append(sent)
+        out.append("\n")
+    return out[:-1]
+
+
+def split_reply(text: str) -> list[str]:
+    room = CAP_MAX - 90
+    parts, cur = [], ""
+    for u in _units(text, CAP_TARGET):
+        sep = "" if (u == "\n" or cur.endswith("\n") or not cur) else " "
+        if cur and len(cur) + len(sep) + len(u) > (CAP_TARGET if len(cur) >= CAP_TARGET * 0.6 else room):
+            parts.append(cur.strip()); cur = "" if u == "\n" else u
+        else:
+            cur += sep + u if u != "\n" else u
+    if cur.strip():
+        parts.append(cur.strip())
+    return parts or [text[:room]]
+
+
+def _part_text(i: int) -> str:
+    parts, n = _PAGES["parts"], len(_PAGES["parts"])
+    tail = f"\n[Part {i} of {n}. To continue, call {MORE_TOOL}(part={i + 1}).]" if i < n else f"\n[Part {i} of {n}, end.]"
+    return parts[i - 1] + tail
+
+
+def cap_reply(payload: str, tool: str) -> str:
+    try:
+        msg = json.loads(payload)
+    except ValueError:
+        return payload
+    res = msg.get("result") if isinstance(msg, dict) else None
+    if not isinstance(res, dict):
+        return payload
+    texts = [c for c in res.get("content") or [] if isinstance(c, dict) and c.get("type") == "text"]
+    full = "\n".join(c.get("text", "") for c in texts)
+    if len(full) <= CAP_MAX:
+        return payload
+    _PAGES["tool"], _PAGES["parts"] = tool, split_reply(full)
+    res["content"] = [{"type": "text", "text": _part_text(1)}]
+    logger.info(f"reply capped tool={tool} chars={len(full)} parts={len(_PAGES['parts'])}")
+    return json.dumps(msg, ensure_ascii=False)
+
+
+MORE_SPEC = {"name": MORE_TOOL, "description": "Continue a long reply: use when the user wants more of the last text (tool replies are split into short parts, each ending with 'Part N of M'). part: the part number to read, e.g. 2.",
+             "inputSchema": {"type": "object", "properties": {"part": {"type": "integer", "description": "Part number, 2 or more"}}, "required": ["part"]}}
+
+
+def more_text_response(msg: dict) -> str:
+    part = (msg.get("params") or {}).get("arguments", {}).get("part")
+    n = len(_PAGES["parts"])
+    try:
+        i = int(part)
+    except (TypeError, ValueError):
+        i = 0
+    if not n:
+        text, err = "Error: there is no long reply to continue. Call the original tool again.", True
+    elif not 1 <= i <= n:
+        text, err = f"Error: part {part} is out of range: the last reply from {_PAGES['tool']} has parts 1 to {n}.", True
+    else:
+        text, err = _part_text(i), False
+    logger.info(f"[{MORE_HOST}] {MORE_TOOL} part={part} of={n} isError={err}")
+    return json.dumps({"jsonrpc": "2.0", "id": msg.get("id"), "result": {"content": [{"type": "text", "text": text}], "isError": err}}, ensure_ascii=False)
+
+
+def add_more_tool(payload: str) -> str:
+    try:
+        msg = json.loads(payload)
+    except ValueError:
+        return payload
+    tools = (msg.get("result") or {}).get("tools") if isinstance(msg, dict) else None
+    if not isinstance(tools, list) or any(t.get("name") == MORE_TOOL for t in tools):
+        return payload
+    tools.append(MORE_SPEC)
+    return json.dumps(msg, ensure_ascii=False)
+
+
 async def pipe_process_to_websocket(websocket, process_holder, target, pending_calls):
     """Read process stdout via a dedicated thread; forward lines to WebSocket."""
     loop = asyncio.get_running_loop()
@@ -393,6 +492,15 @@ async def pipe_process_to_websocket(websocket, process_holder, target, pending_c
                 if not payload:
                     continue
                 payload = _slim_payload(payload)
+                if target == MORE_HOST:
+                    payload = add_more_tool(payload)
+                if '"content"' in payload:
+                    try:
+                        _id = json.loads(payload).get("id")
+                    except ValueError:
+                        _id = None
+                    if _id in pending_calls:
+                        payload = cap_reply(payload, pending_calls[_id][0])
                 logger.debug(f"[{target}] >> {payload[:120]}...")
                 await websocket.send(payload)
                 try:
