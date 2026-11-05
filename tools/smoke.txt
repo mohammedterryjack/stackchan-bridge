@@ -76,3 +76,15 @@ hilyat-al-awliya|hilya_read|{"person":"2","part":2}
 hilyat-al-awliya|hilya_search|{"query":"Fudayl zuhd","limit":2}
 hilyat-al-awliya|hilya_search|{"query":"Rabia","limit":2}
 hilyat-al-awliya|hilya_random|{}
+female-awliya|sulami_women_people|{"query":"Rabia"}
+female-awliya|sulami_women_read|{"person":"Rabia"}
+female-awliya|sulami_women_search|{"query":"zuhd","limit":2}
+female-awliya|sulami_women_random|{}
+female-awliya|safwa_women_people|{"query":"Rabia"}
+female-awliya|safwa_women_read|{"person":"Rabia","part":1}
+female-awliya|safwa_women_search|{"query":"الصبر","limit":2}
+female-awliya|safwa_women_random|{}
+habib-omar|habib_omar_latest|{"limit":3}
+habib-omar|habib_omar_latest|{"source":"news","limit":2}
+habib-omar|habib_omar_latest|{"source":"muwasala","limit":2}
+habib-omar|habib_omar_read|{"index":1,"part":1}

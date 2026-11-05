@@ -1,11 +1,11 @@
 # Stack-chan MCP bridge
 
-A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, Sufi classics (al-Ghazali, Ibn Arabi, al-Jilani), Hilyat al-Awliya, maps and more. It runs 23 local MCP servers exposing 76 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
+A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, Sufi classics (al-Ghazali, Ibn Arabi, al-Jilani), Hilyat al-Awliya, maps and more. It runs 25 local MCP servers exposing 86 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
 
 ## How it works
 `mcp_pipe.py` opens a WebSocket to your xiaozhi.me agent's MCP endpoint and starts every server listed in `mcp_config.json` as a child process (stdio). When you talk to Stack-chan, the Xiaozhi cloud can call these tools and read the result aloud. Tools are only used while someone is talking to the robot.
 
-## Servers and tools (23 servers, 76 tools)
+## Servers and tools (25 servers, 86 tools)
 - calculator: calculator
 - web-search: web_search, web_read
 - time: time_now, time_convert (city or timezone required, no default)
@@ -26,6 +26,8 @@ A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, c
 - prophet-dreams: dreams_read, dreams_search, dreams_random, dreams_sources (dreams others saw of the Prophet from al-Mara'i al-Hisan (Ibn Abi Jamrah), Sa'adat al-Darayn (al-Nabhani), al-Manamat (Ibn Abi al-Dunya) and al-Mustaghithin billah (Ibn Bashkuwal), classical Arabic, via HF dataset; dream_number is per source, and without `source` the read defaults to al-Mara'i)
 - sufi-classics: ghazali_contents/read/search/random (al-Ghazali, Ihya Ulum al-Din), ibnarabi_contents/read/search/random (Ibn Arabi, al-Futuhat al-Makkiyya), jilani_contents/read/search/random (Abd al-Qadir al-Jilani, al-Ghunya li-Talibi Tariq al-Haqq); original Arabic via HF dataset, Stack-chan explains or translates
 - hilyat-al-awliya: hilya_people, hilya_read, hilya_search, hilya_random (Abu Nu'aym al-Isfahani, Hilyat al-Awliya wa Tabaqat al-Asfiya: 674 entries/biographies of sahaba, tabi'in and early ascetics; original Arabic via HF dataset, Stack-chan explains or translates; famous English names like Hasan al-Basri or Junayd are mapped to Arabic)
+- female-awliya: sulami_women_people/read/search/random (al-Sulami, Dhikr al-Niswa: 82 women including Rabia al-Adawiyya as entry 1) and safwa_women_people/read/search/random (Ibn al-Jawzi, Sifat al-Safwa women: ~110 biographies); original Arabic via HF dataset MTerryJack/female-awliya (OpenITI, CC BY-NC-SA 4.0); short ~800-char parts for spoken audio
+- habib-omar: habib_omar_latest, habib_omar_read (Habib Omar / Habib Umar bin Hafiz live updates: Arabic news from alhabibumar.com and English Sayyidi teachings from muwasala.org; live fetch only, no storage; short parts)
 - gospel: gospel_books, gospel_read, gospel_search, gospel_random (Matthew, Mark, Luke, John from the World English Bible and the Gospel of Barnabas, Ragg 1907; one row per verse via HF dataset)
 - ethiopian-canon: ethiopian_books, ethiopian_read, ethiopian_search, ethiopian_random (Ethiopian Orthodox canon books not in the Tanakh or gospel tools, in their source language where possible, which the AI translates or explains: Ge'ez 1 Enoch, Jubilees, Sirach, Wisdom, Baruch, 4 Baruch, 1-3 Meqabyan, Canons of Clement and Acts to Revelation; Amharic EOTC Qalementos, Didesqelya, Tobit, Judith, 1-2 Esdras (Ezra Kale/Sutuel), Letter of Jeremiah, Azariah, Susanna and Bel; English only where no Ge'ez/Amharic exists: Sinodos and its Arabic/Sahidic recensions (Horner), Testament of Our Lord (Kidan stand-in), Gessew (Schodde), Apostolic Constitutions and 85 Canons (Abtelis stand-in), Additions to Esther, Prayer of Manasseh, Psalm 151)
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
@@ -44,7 +46,7 @@ No API keys are needed: every server uses free, keyless sources.
 
 The first `make setup` creates `.env` from `.env.example` and stops with a message. Open `.env` and set `MCP_ENDPOINT` to your endpoint: in xiaozhi.me, open the MCP endpoint settings for your agent and copy the `wss://...` address. Treat it like a password; anyone with it can attach tools to your robot. `.env` is gitignored. Then run `make setup` again.
 
-`make setup` checks Docker and Compose are installed and running, checks `.env` has a real `MCP_ENDPOINT` (it fails loudly otherwise; there are no defaults), then builds and starts only the `stackchan-bridge` container. The DuckDB httpfs extension the zines, Rumi, Aesop, hadith-commentary, prophet-dreams, sufi-classics and hilyat-al-awliya servers need is downloaded inside the Docker build for your machine's architecture (arm64 or amd64), so there is no manual download.
+`make setup` checks Docker and Compose are installed and running, checks `.env` has a real `MCP_ENDPOINT` (it fails loudly otherwise; there are no defaults), then builds and starts only the `stackchan-bridge` container. The DuckDB httpfs extension the zines, Rumi, Aesop, hadith-commentary, prophet-dreams, sufi-classics, hilyat-al-awliya and female-awliya servers need is downloaded inside the Docker build for your machine's architecture (arm64 or amd64), so there is no manual download.
 
 | Command | What it does |
 |---|---|
