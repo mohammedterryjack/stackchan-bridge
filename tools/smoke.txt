@@ -88,3 +88,9 @@ habib-omar|habib_omar_latest|{"limit":3}
 habib-omar|habib_omar_latest|{"source":"news","limit":2}
 habib-omar|habib_omar_latest|{"source":"muwasala","limit":2}
 habib-omar|habib_omar_read|{"index":1,"part":1}
+recipes|recipe_suggest|{}
+recipes|recipe_suggest|{"ingredient":"chicken","cuisine":"Indian"}
+recipes|recipe_search|{"name":"lasagne"}
+recipes|recipe_by_ingredient|{"ingredient":"salmon"}
+recipes|recipe_read|{"recipe":"52772","part":1}
+recipes|recipe_ingredients|{"recipe":"Teriyaki Chicken Casserole"}
