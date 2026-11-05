@@ -1,12 +1,15 @@
 # Stack-chan MCP bridge
 
-A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, Sufi classics (al-Ghazali, Ibn Arabi, al-Jilani), Hilyat al-Awliya, maps and more. It runs 25 local MCP servers exposing 86 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
+A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, Sufi classics (al-Ghazali, Ibn Arabi, al-Jilani), Hilyat al-Awliya, maps and more. It runs 25 local MCP servers exposing 87 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
 
 ## How it works
 `mcp_pipe.py` opens a WebSocket to your xiaozhi.me agent's MCP endpoint and starts every server listed in `mcp_config.json` as a child process (stdio). When you talk to Stack-chan, the Xiaozhi cloud can call these tools and read the result aloud. Tools are only used while someone is talking to the robot.
 
-## Servers and tools (25 servers, 86 tools)
-- calculator: calculator
+## Servers and tools (25 servers, 87 tools)
+- calculator: calculator, more_text (pages through long replies)
+
+Reply cap: mcp_pipe.py caps every tool reply at ~800 chars (max 1000), splitting on sentence/verse boundaries with "Part N of M" notes; Stack-chan calls more_text(part=N) to continue.
+
 - web-search: web_search, web_read
 - time: time_now, time_convert (city or timezone required, no default)
 - hackernews: hn_top_stories, hn_search, hn_story, hn_user
