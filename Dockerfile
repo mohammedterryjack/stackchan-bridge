@@ -3,6 +3,8 @@ RUN useradd -m -u 1000 bridge
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt fastmcp duckduckgo-mcp-server workspace-mcp mcp-server-time wikipedia-mcp "mcp[cli]>=1.6.0" "httpx>=0.28.1" "requests>=2.32.3" "duckdb==1.3.2"
+# Japanese romaji (japanese server): MeCab tokenizer + bundled unidic-lite dictionary, baked in at build time
+RUN pip install --no-cache-dir "fugashi==1.5.2" "unidic-lite==1.0.8"
 # hackernews/reddit need mcp 1.x; isolated venv so they do not clash with mcp 2.x above
 RUN python -m venv /opt/social && /opt/social/bin/pip install --no-cache-dir "mcp>=1.20,<2" mcp-hn==0.1.0 mcp-server-reddit==0.2.1
 # youtube 0.8.3 (needs mcp 2.x, supports --response-limit) is not on PyPI; pinned to GitHub commit
@@ -12,7 +14,7 @@ RUN python -m venv /opt/arxiv && /opt/arxiv/bin/pip install --no-cache-dir "mcp>
 # DuckDB httpfs fetched at build time for the build arch, under /opt (compose tmpfs wipes /home/bridge); pinned duckdb==1.3.2
 COPY duckdb_bake_httpfs.py /tmp/duckdb_bake_httpfs.py
 RUN python /tmp/duckdb_bake_httpfs.py && rm -f /tmp/duckdb_bake_httpfs.py
-COPY mcp_pipe.py calculator.py news_server.py zine_server.py time_server.py reddit_server.py hn_server.py web_search_server.py prayer_times_server.py youtube_search_server.py quran_hadith_server.py darknet_server.py maps_server.py tanakh_server.py rumi_server.py aesop_server.py hadith_commentary_server.py prophet_dreams_server.py sufi_classics_server.py gospel_server.py ethiopian_server.py hilya_server.py female_awliya_server.py habib_omar_server.py recipes_server.py verse_corpus.py mcp_tool_log.py mcp_filter_proxy.py mcp_config.json ./
+COPY mcp_pipe.py calculator.py news_server.py zine_server.py time_server.py reddit_server.py hn_server.py web_search_server.py prayer_times_server.py youtube_search_server.py quran_hadith_server.py darknet_server.py maps_server.py tanakh_server.py rumi_server.py aesop_server.py hadith_commentary_server.py prophet_dreams_server.py sufi_classics_server.py gospel_server.py ethiopian_server.py hilya_server.py female_awliya_server.py habib_omar_server.py recipes_server.py japanese_server.py japanese_romaji.py verse_corpus.py mcp_tool_log.py mcp_filter_proxy.py mcp_config.json ./
 COPY filter_configs/ /app/filter_configs/
 USER bridge
 CMD ["python","mcp_pipe.py"]

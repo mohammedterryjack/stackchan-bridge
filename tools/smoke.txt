@@ -94,3 +94,11 @@ recipes|recipe_search|{"name":"lasagne"}
 recipes|recipe_by_ingredient|{"ingredient":"salmon"}
 recipes|recipe_read|{"recipe":"52772","part":1}
 recipes|recipe_ingredients|{"recipe":"Teriyaki Chicken Casserole"}
+japanese|japanese_word|{"english":"water"}
+japanese|japanese_word|{"english":"cat","limit":2}
+japanese|japanese_phrase_random|{}
+japanese|japanese_phrase_random|{"topic":"food","level":"beginner"}
+japanese|japanese_phrase_search|{"query":"thank you","limit":2}
+japanese|japanese_phrase_search|{"query":"where station"}
+japanese|japanese_phrase_topics|{}
+japanese|japanese_to_romaji|{"text":"駅はどこですか？","english":"Where is the station?"}
