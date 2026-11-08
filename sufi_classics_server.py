@@ -15,6 +15,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 import duckdb
 from fastmcp import FastMCP
 
+import bookmarks
+
 from mcp_tool_log import get_logger, hf_revision, logged, note
 
 REPO = "MTerryJack/sufi-classics"
@@ -108,7 +110,7 @@ def _terms(q: str) -> list[str]:
     return list(dict.fromkeys(re.findall(r"[\u0621-\u064A0-9]+", s)))
 
 
-def _read_impl(pfx: str, chapter: int, part: int) -> str:
+def _read_impl(pfx: str, chapter: int, part: int, mark: bool = False) -> str:
     bk, label = AUTHORS[pfx]
     c, p = int(chapter), int(part)
     last = _q("SELECT max(chapter_number) FROM t WHERE book_key = ?", [bk])[0][0]
@@ -122,6 +124,8 @@ def _read_impl(pfx: str, chapter: int, part: int) -> str:
     note(rid)
     nxt = f"{pfx}_read(chapter={c}, part={p + 1})" if p < n else (f"{pfx}_read(chapter={c + 1})" if c < last else "end of book")
     where = f"{vol} / " if vol else ""
+    if mark:
+        bookmarks.record(pfx, f"chapter {c}, part {p} of {n}", {"chapter": c, "part": p + 1} if p < n else ({"chapter": c + 1} if c < last else None))
     return f"{NOTE}\n{label}. {where}Chapter {c}: {title}. Part {p}/{n}:\n{txt}\nNext: {nxt}"
 
 
@@ -188,7 +192,7 @@ def _register(pfx: str) -> None:
         return _run(_contents_impl, pfx, page, query)
 
     def read(chapter: int, part: int = 1) -> str:
-        return _run(_read_impl, pfx, chapter, part)
+        return _run(_read_impl, pfx, chapter, part, True)
 
     def search(query: str, limit: int = 3) -> str:
         return _run(_search_impl, pfx, query, limit)

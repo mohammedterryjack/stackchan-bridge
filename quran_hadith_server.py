@@ -8,6 +8,8 @@ import re
 import httpx
 from fastmcp import FastMCP
 
+import bookmarks
+
 QURAN = "https://api.alquran.cloud/v1"
 HADITH = "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions"
 EN, AR = "en.sahih", "quran-simple-clean"
@@ -71,6 +73,18 @@ def _surah_num(surah: str | int) -> int:
     raise ValueError(f"unknown surah {s!r}; give a number 1-114 or a name like Al-Baqarah")
 
 
+def _mark_quran(out: str, info: dict, total: int, count: int, arabic: bool) -> str:
+    m = re.search(r"\(quran (\d+):(\d+)(?:-(\d+))?\)", out)
+    if not m:
+        raise RuntimeError("quran_read reply has no (quran s:a) reference to bookmark")
+    n, a, b = int(m.group(1)), int(m.group(2)), int(m.group(3) or m.group(2))
+    nxt = ({"surah": str(n), "ayah": b + 1} if b < total else {"surah": str(n + 1), "ayah": 1} if n < 114 else None)
+    if nxt:
+        nxt.update(count=count, arabic=arabic)
+    bookmarks.record("quran", f"Surah {info['englishName']} {n}:{a}" + (f"-{b}" if b > a else ""), nxt)
+    return out
+
+
 @mcp.tool()
 def quran_read(surah: str, ayah: int = 1, count: int = 3, arabic: bool = True) -> str:
     """Use when the user asks to hear Quran verses or a surah. surah: name (Al-Baqarah, Yasin, The Cow) or number, or 'surah:ayah' like '2:255' (then ayah is ignored). count 1-5 (default 3). arabic: include Arabic if it fits. Returns verses ending '(quran 2:255)'; call again with the next ayah to continue."""
@@ -102,11 +116,11 @@ def quran_read(surah: str, ayah: int = 1, count: int = 3, arabic: bool = True) -
         for k in range(count, 0, -1):
             out = build(k, True)
             if len(out) <= MAX_CHARS:
-                return out
+                return _mark_quran(out, info, total, count, arabic)
     for k in range(count, 0, -1):
         out = build(k, False)
         if len(out) <= MAX_CHARS or k == 1:
-            return out
+            return _mark_quran(out, info, total, count, arabic)
 
 
 @mcp.tool()
@@ -166,7 +180,10 @@ def _hadith(c: str, number: int, arabic: bool) -> str:
 @mcp.tool()
 def hadith_get(collection: str, number: int, arabic: bool = False) -> str:
     """Use when the user asks for a specific hadith by collection and number, e.g. 'Bukhari 1'. collection: bukhari|muslim|abudawud|tirmidhi|nasai|ibnmajah|malik|nawawi|qudsi. arabic: add Arabic if short. Returns the hadith ending '(bukhari 1)'."""
-    return _hadith(_coll(collection), int(number), arabic)
+    c, n = _coll(collection), int(number)
+    out = _hadith(c, n, arabic)
+    bookmarks.record("hadith", f"{COLLECTIONS[c][0]}, hadith {n}", {"collection": c, "number": n + 1, "arabic": arabic} if n < COLLECTIONS[c][1] else None)
+    return out
 
 
 @mcp.tool()

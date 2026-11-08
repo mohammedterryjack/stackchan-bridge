@@ -38,7 +38,7 @@ logs:
 	docker logs -f --tail 100 $(CONTAINER)
 
 test:
-	@fail=0; while IFS='|' read -r srv tool args; do [ -z "$$srv" ] || [ "$${srv:0:1}" = "#" ] && continue; out=$$(docker exec -i $(CONTAINER) python - "$$srv" "$$tool" "$$args" < tools/sc_t.py 2>&1); last=$$(tail -1 <<<"$$out"); if grep -q 'err=False' <<<"$$last"; then echo "PASS $$srv/$$tool $$last"; else echo "FAIL $$srv/$$tool $$last"; fail=1; fi; done < tools/smoke.txt; exit $$fail
+	@fail=0; while IFS='|' read -r srv tool args; do [ -z "$$srv" ] || [ "$${srv:0:1}" = "#" ] && continue; if [ "$$srv" = "!restart" ]; then if docker restart $(CONTAINER) >/dev/null; then echo "PASS restart $(CONTAINER) (bookmarks must survive it)"; else echo "FAIL restart $(CONTAINER)"; fail=1; fi; continue; fi; out=$$(docker exec -i $(CONTAINER) python - "$$srv" "$$tool" "$$args" < tools/sc_t.py 2>&1); last=$$(tail -1 <<<"$$out"); if grep -q 'err=False' <<<"$$last"; then echo "PASS $$srv/$$tool $$last"; else echo "FAIL $$srv/$$tool $$last"; fail=1; fi; done < tools/smoke.txt; exit $$fail
 
 stop:
 	$(COMPOSE) stop stackchan-bridge

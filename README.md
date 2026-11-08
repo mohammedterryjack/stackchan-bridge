@@ -1,12 +1,12 @@
 # Stack-chan MCP bridge
 
-A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, Sufi classics (al-Ghazali, Ibn Arabi, al-Jilani), Hilyat al-Awliya, recipes, Japanese lessons in romaji, maps and more. It runs 27 local MCP servers exposing 97 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
+A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, Sufi classics (al-Ghazali, Ibn Arabi, al-Jilani), Hilyat al-Awliya, recipes, Japanese lessons in romaji, maps and more. It runs 27 local MCP servers exposing 101 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
 
 ## How it works
 `mcp_pipe.py` opens a WebSocket to your xiaozhi.me agent's MCP endpoint and starts every server listed in `mcp_config.json` as a child process (stdio). When you talk to Stack-chan, the Xiaozhi cloud can call these tools and read the result aloud. Tools are only used while someone is talking to the robot.
 
-## Servers and tools (26 servers, 92 tools)
-- calculator: calculator, more_text (pages through long replies)
+## Servers and tools (27 servers, 101 tools)
+- calculator: calculator, more_text (pages through long replies), and the bookmark tools bookmark_continue, bookmark_list, bookmark_set, bookmark_clear (served by mcp_pipe.py on this connection; see Bookmarks below)
 
 Reply cap: mcp_pipe.py caps every tool reply at ~800 chars (max 1000), splitting on sentence/verse boundaries with "Part N of M" notes; Stack-chan calls more_text(part=N) to continue.
 
@@ -36,6 +36,8 @@ Reply cap: mcp_pipe.py caps every tool reply at ~800 chars (max 1000), splitting
 - gospel: gospel_books, gospel_read, gospel_search, gospel_random (Matthew, Mark, Luke, John from the World English Bible and the Gospel of Barnabas, Ragg 1907; one row per verse via HF dataset)
 - ethiopian-canon: ethiopian_books, ethiopian_read, ethiopian_search, ethiopian_random (Ethiopian Orthodox canon books not in the Tanakh or gospel tools, in their source language where possible, which the AI translates or explains: Ge'ez 1 Enoch, Jubilees, Sirach, Wisdom, Baruch, 4 Baruch, 1-3 Meqabyan, Canons of Clement and Acts to Revelation; Amharic EOTC Qalementos, Didesqelya, Tobit, Judith, 1-2 Esdras (Ezra Kale/Sutuel), Letter of Jeremiah, Azariah, Susanna and Bel; English only where no Ge'ez/Amharic exists: Sinodos and its Arabic/Sahidic recensions (Horner), Testament of Our Lord (Kidan stand-in), Gessew (Schodde), Apostolic Constitutions and 85 Canons (Abtelis stand-in), Additions to Esther, Prayer of Manasseh, Psalm 151)
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
+
+Bookmarks: every book read tool saves where you stopped, one bookmark per book: quran_read (Quran), hadith_get (hadith collections), tanakh_chapter/tanakh_verse (Tanakh), gospel_read, ethiopian_read, rumi_read, aesop_read, bahjat_read, dreams_read, ghazali_read (Ihya), ibnarabi_read (Futuhat), jilani_read (Ghunya), hilya_read, sulami_women_read, safwa_women_read and zine_read. Random/search tools do not move a bookmark. Say "continue reading the Quran" (bookmark_continue reads the next passage through that book's live server), "what am I reading?" (bookmark_list), "set my Rumi bookmark to 1:100" (bookmark_set) or "forget my Hilya bookmark" (bookmark_clear). They live in /data/bookmarks/bookmarks.json on the named Docker volume `stackchan-bookmarks` (stackchan-bridge only), so they survive rebuilds and restarts; writes are atomic under a file lock (bookmarks.py), and the bridge refuses to start if the volume is not writable. `make test` uses a separate smoke-test.json on the same volume and restarts the container once to prove bookmarks persist.
 
 No API keys are needed: every server uses free, keyless sources.
 

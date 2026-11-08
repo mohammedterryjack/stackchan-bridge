@@ -14,6 +14,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 import duckdb
 from fastmcp import FastMCP
 
+import bookmarks
+
 from mcp_tool_log import get_logger, hf_revision, logged, note
 
 CALL_TIMEOUT_S = 8.0
@@ -123,6 +125,7 @@ class Corpus:
             raise ValueError(f"{name} {c}:{s}-{e} has no verses in this text.")
         ref = f"{name} {c}:{s}" + (f"-{last}" if last > s else "")
         nxt = f"{self.pfx}_read('{name}', {c}, {last + 1})" if last < vmax else (f"{self.pfx}_read('{name}', {c + 1})" if c < hi else "end of book")
+        bookmarks.record(self.pfx, ref, {"book": name, "chapter": c, "verse_start": last + 1} if last < vmax else ({"book": name, "chapter": c + 1} if c < hi else None))
         return " ".join(out)[:MAX_CHARS + 400] + f" ({ref}).{_lang_note(rows[0][3])} Next: {nxt}"
 
     def search_impl(self, query: str, book: str | None, limit: int) -> str:

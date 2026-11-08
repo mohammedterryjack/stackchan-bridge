@@ -9,6 +9,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 import duckdb
 from fastmcp import FastMCP
 
+import bookmarks
+
 DATASET_PARQUET = "hf://datasets/MTerryJack/hacker-zines/data/train.parquet"
 ALLOWED_ZINES = frozenset({"phrack", "pocorgtfo", "tmpout"})
 MAX_LIMIT = 5
@@ -153,6 +155,13 @@ def _read_impl(chunk_id: str) -> str:
     if row is None:
         raise LookupError(f"unknown id: {cid}")
     rid, zin, issue, article, title, author, chunk_idx, text, url = row
+    with _lock:
+        nxt = con.execute(
+            "SELECT id FROM zines WHERE zine = ? AND (issue, article, chunk_idx) > (?, ?, ?) "
+            "ORDER BY issue, article, chunk_idx LIMIT 1",
+            [zin, issue, article, chunk_idx],
+        ).fetchone()
+    bookmarks.record("zines", f"{title}, section {rid}", {"id": nxt[0]} if nxt else None)
     body = text if len(text) <= READ_CHARS else text[:READ_CHARS] + "…"
     auth = f"\nAuthor: {author}" if author else ""
     out = (

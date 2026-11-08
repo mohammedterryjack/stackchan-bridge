@@ -15,6 +15,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 import duckdb
 from fastmcp import FastMCP
 
+import bookmarks
+
 from mcp_tool_log import get_logger, hf_revision, logged, note
 
 REPO = "MTerryJack/female-awliya"
@@ -173,7 +175,7 @@ def _find(book: str, person: str) -> int:
     return rows[0][0]
 
 
-def _read_impl(book: str, person: str, part: int) -> str:
+def _read_impl(book: str, person: str, part: int, mark: bool = False) -> str:
     meta = BOOKS[book]
     n, p = _find(book, person), int(part)
     last = _q("SELECT max(number) FROM t WHERE book_key = ?", [book])[0][0]
@@ -191,6 +193,9 @@ def _read_impl(book: str, person: str, part: int) -> str:
     nxt = f"{pref}_read(person='{n}', part={p + 1})" if p < m else (
         f"{pref}_read(person='{n + 1}')" if n < last else "end of book"
     )
+    if mark:
+        bookmarks.record(f"{book}_women", f"entry {n}, part {p} of {m}",
+                         {"person": str(n), "part": p + 1} if p < m else ({"person": str(n + 1)} if n < last else None))
     return f"{NOTE}\n{meta['label']}. Entry {n}: {name}. Part {p} of {m}:\n{txt}\nNext: {nxt}"
 
 
@@ -273,7 +278,7 @@ def _register(book: str) -> None:
         return _run(_people_impl, book, query, page)
 
     def read(person: str, part: int = 1) -> str:
-        return _run(_read_impl, book, person, part)
+        return _run(_read_impl, book, person, part, True)
 
     def search(query: str, limit: int = 3) -> str:
         return _run(_search_impl, book, query, limit)

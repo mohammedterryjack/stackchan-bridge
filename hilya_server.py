@@ -15,6 +15,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 import duckdb
 from fastmcp import FastMCP
 
+import bookmarks
+
 from mcp_tool_log import get_logger, hf_revision, logged, note
 
 REPO = "MTerryJack/hilyat-al-awliya"
@@ -146,7 +148,7 @@ def _find(person: str) -> int:
     return rows[0][0]
 
 
-def _read_impl(person: str, part: int) -> str:
+def _read_impl(person: str, part: int, mark: bool = False) -> str:
     n, p = _find(person), int(part)
     last = _q("SELECT max(number) FROM t", [])[0][0]
     rows = _q("SELECT id, volume, name_ar, text_ar, (SELECT max(part) FROM t WHERE number = ?) FROM t WHERE number = ? AND part = ?", [n, n, p])
@@ -156,6 +158,8 @@ def _read_impl(person: str, part: int) -> str:
     rid, vol, name, txt, m = rows[0]
     note(rid)
     nxt = f"hilya_read(person='{n}', part={p + 1})" if p < m else (f"hilya_read(person='{n + 1}')" if n < last else "end of book")
+    if mark:
+        bookmarks.record("hilya", f"entry {n}, part {p} of {m}", {"person": str(n), "part": p + 1} if p < m else ({"person": str(n + 1)} if n < last else None))
     return f"{NOTE}\n{LABEL}. Volume {vol}, entry {n}: {name}. Part {p}/{m}:\n{txt}\nNext: {nxt}"
 
 
@@ -222,7 +226,7 @@ def hilya_people(query: str | None = None, page: int = 1) -> str:
 @mcp.tool(name="hilya_read", description=f"{A} Reads one person's biography and sayings. person: entry number from hilya_people/hilya_search, or a name (Arabic or famous English name, e.g. 'Hasan al-Basri', 'Sufyan al-Thawri'); part 1.. (about 2000 characters each). Returns the text and a Next: call. {H}")
 @logged(log)
 def hilya_read(person: str, part: int = 1) -> str:
-    return _run(_read_impl, person, part)
+    return _run(_read_impl, person, part, True)
 
 
 @mcp.tool(name="hilya_search", description=f"{A} Full-text search, e.g. what the early saints said about a topic (zuhd, patience, fear, weeping, the world, repentance, night prayer) or passages mentioning a person. query: Arabic keywords, common English topic words, or famous names (mapped to Arabic); all must match. limit 1-5. Returns snippets with the hilya_read call to open each. {H}")

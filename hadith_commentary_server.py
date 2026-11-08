@@ -13,6 +13,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 import duckdb
 from fastmcp import FastMCP
 
+import bookmarks
+
 from mcp_tool_log import get_logger, hf_revision, logged, note
 
 REPO = "MTerryJack/bahjat-al-nufus"
@@ -105,7 +107,7 @@ def _ref(n: int, covers: str, vol: int, conf: str) -> str:
     return f"(Bahjat al-Nufus, {h}, vol {vol}{c})"
 
 
-def _read_impl(hadith_number: int, part: int) -> str:
+def _read_impl(hadith_number: int, part: int, mark: bool = False) -> str:
     n, p = int(hadith_number), int(part)
     lo, hi = _q("SELECT min(hadith_number), max(hadith_number) FROM bahja", [])[0]
     if not lo <= n <= hi:
@@ -123,6 +125,9 @@ def _read_impl(hadith_number: int, part: int) -> str:
     chunk = com[(p - 1) * PAGE_CHARS: p * PAGE_CHARS]
     head = f"Hadith (Bukhari {bk}): {_cut(_speak(had), HADITH_CHARS)}\n" if p == 1 else ""
     nxt = f"\nNext: bahjat_read(hadith_number={hn}, part={p + 1})" if p < pages else f"\nEnd of commentary on hadith {cov}. Next hadith: bahjat_read(hadith_number={b + 1})." if b < hi else f"\nEnd of commentary on hadith {cov}, the last in the book."
+    if mark:
+        bookmarks.record("bahjat", f"hadith {cov}, commentary part {p} of {pages}",
+                         {"hadith_number": hn, "part": p + 1} if p < pages else ({"hadith_number": b + 1} if b < hi else None))
     return f"{NOTE}\n{head}Commentary part {p}/{pages}: {chunk} {_ref(hn, cov, vol, conf)}{nxt}"
 
 
@@ -188,7 +193,7 @@ def _random_impl() -> str:
 @logged(log)
 def bahjat_read(hadith_number: int, part: int = 1) -> str:
     """Use when the user asks for Ibn Abi Jamrah's commentary on a hadith (Bahjat al-Nufus, his commentary on his Bukhari abridgement Mukhtasar Sahih al-Bukhari / Jam' al-Nihaya), e.g. "Ibn Abi Jamrah commentary on hadith 3", "read on", or a hadith_number from bahjat_search. hadith_number 1-287 (his numbering, not Bukhari's). part pages the commentary (1, 2, ...). Text is classical Arabic (OCR): translate or explain it when speaking. Returns the hadith, one part of commentary and a Next: call."""
-    return _run(_read_impl, hadith_number, part)
+    return _run(_read_impl, hadith_number, part, True)
 
 
 @mcp.tool()

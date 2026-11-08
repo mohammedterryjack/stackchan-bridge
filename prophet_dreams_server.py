@@ -15,6 +15,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 import duckdb
 from fastmcp import FastMCP
 
+import bookmarks
+
 from mcp_tool_log import get_logger, hf_revision, logged, note
 
 REPO = "MTerryJack/prophet-dreams"
@@ -162,7 +164,7 @@ def _arg(src: str) -> str:
     return "" if src == DEFAULT_SOURCE else f', source="{_short(src)}"'
 
 
-def _read_impl(dream_number: int, part: int, source: str | None) -> str:
+def _read_impl(dream_number: int, part: int, source: str | None, mark: bool = False) -> str:
     n, p = int(dream_number), int(part)
     src = _resolve(source) or DEFAULT_SOURCE
     lo, last = _q("SELECT min(dream_number), max(CAST(split_part(covers, '-', -1) AS INT)) FROM dreams WHERE source = ?", [src])[0]
@@ -179,6 +181,9 @@ def _read_impl(dream_number: int, part: int, source: str | None) -> str:
     end = int(cov.split("-")[-1])
     nxt = (f"\nNext: dreams_read(dream_number={dn}, part={p + 1}{_arg(src)})" if p < pages
            else f"\nNext: dreams_read(dream_number={end + 1}{_arg(src)})" if end < last else "\nEnd of this source. Others: dreams_sources().")
+    if mark:
+        bookmarks.record("dreams", f"{_short(src)}, dream {cov}, part {p} of {pages}",
+                         {"dream_number": dn, "part": p + 1, "source": _short(src)} if p < pages else ({"dream_number": end + 1, "source": _short(src)} if end < last else None))
     return f"{NOTE}{merged}\n{head}Part {p}/{pages}: {txt[(p - 1) * PAGE_CHARS: p * PAGE_CHARS]} {_ref(src, cov, ref)}{nxt}"
 
 
@@ -232,7 +237,7 @@ def _sources_impl() -> str:
 @logged(log)
 def dreams_read(dream_number: int, part: int = 1, source: str | None = None) -> str:
     """Use when the user wants to hear a specific dream in which someone saw the Prophet (saas), e.g. "read dream 12", "the next one", or a dream_number from dreams_search. dream_number counts within one source (ranges: dreams_sources). part pages long dreams (1, 2, ...). Text is classical Arabic: translate or explain it when speaking. Returns one part plus a Next: call to continue. Sources (source= takes any part of the name, English or Arabic): al-Mara'i al-Hisan (Ibn Abi Jamrah, default), Sa'adat al-Darayn (Nabhani), al-Manamat (Ibn Abi al-Dunya), al-Mustaghithin (Ibn Bashkuwal)."""
-    return _run(_read_impl, dream_number, part, source)
+    return _run(_read_impl, dream_number, part, source, True)
 
 
 @mcp.tool()

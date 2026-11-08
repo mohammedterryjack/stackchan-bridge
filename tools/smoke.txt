@@ -102,3 +102,16 @@ japanese|japanese_phrase_search|{"query":"thank you","limit":2}
 japanese|japanese_phrase_search|{"query":"where station"}
 japanese|japanese_phrase_topics|{}
 japanese|japanese_to_romaji|{"text":"駅はどこですか？","english":"Where is the station?"}
+# bookmarks (smoke file /data/bookmarks/smoke-test.json; real bookmarks untouched): record, restart, continue
+bookmarks|bookmark_clear|{"book":"all"}
+aesop|aesop_read|{"fable_id":1}
+hilyat-al-awliya|hilya_read|{"person":"1","part":1}
+bookmarks|bookmark_set|{"book":"Quran","position":"2:255"}
+bookmarks|bookmark_list|{}
+!restart||
+bookmarks|bookmark_list|{}
+bookmarks|bookmark_continue|{"book":"Aesop"}
+bookmarks|bookmark_continue|{"book":"Hilya"}
+bookmarks|bookmark_continue|{"book":"Quran"}
+bookmarks|bookmark_continue|{}
+bookmarks|bookmark_clear|{"book":"hilya"}

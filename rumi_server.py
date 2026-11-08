@@ -8,6 +8,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 import duckdb
 from fastmcp import FastMCP
 
+import bookmarks
+
 DATASET_PARQUET = "hf://datasets/MTerryJack/rumi-mathnawi/data/train.parquet"
 BOOKS = (1, 2, 3, 4, 5, 6)
 MAX_LIMIT = 5
@@ -100,6 +102,7 @@ def _page(book: int, start_verse: int) -> str:
     head = f"{section}. " if section else ""
     nxt = _q("SELECT min(verse_start) FROM rumi WHERE book = ? AND verse_start > ?", [book, b])[0][0]
     tail = f"\nNext: rumi_read(book={book}, verse={nxt})" if nxt is not None else f"\nEnd of Book {book}."
+    bookmarks.record("rumi", f"Book {book}, verses {a}-{b}", {"book": book, "verse": nxt} if nxt is not None else ({"book": book + 1, "verse": 1} if book < 6 else None))
     return f"{head}{' '.join(parts)} {_ref(book, a, b)}{tail}"
 
 

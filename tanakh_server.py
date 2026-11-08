@@ -9,6 +9,8 @@ from collections import OrderedDict
 import httpx
 from fastmcp import FastMCP
 
+import bookmarks
+
 API = "https://www.sefaria.org/api"
 MAX_VERSES = 8
 MAX_CHARS = 1000
@@ -79,6 +81,8 @@ def _render(c: dict, start: int, end: int) -> str:
         last = i
     ref = f"({c['book']} {c['chapter']}:{start}" + (f"-{last})" if last > start else ")")
     more = f"Next: verse {last + 1}" if last < n else "End of chapter."
+    nxt = {"book": c["book"], "chapter": c["chapter"], "start": last + 1} if last < n else {"book": c["book"], "chapter": c["chapter"] + 1}
+    bookmarks.record("tanakh", ref[1:-1], nxt)
     return "\n".join([*lines, ref, more])
 
 

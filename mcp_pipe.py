@@ -30,8 +30,11 @@ import sys
 import json
 import re
 import time
+import itertools
 import threading
 from dotenv import load_dotenv
+
+import bookmarks
 
 # Auto-load environment variables from a .env file if present
 load_dotenv()
@@ -52,6 +55,11 @@ WS_OPTS = dict(ping_interval=15, ping_timeout=10, open_timeout=15, close_timeout
 
 # Hard per-tool deadline (seconds). Exceeding returns JSON-RPC error and kills the hung child.
 TOOL_DEADLINE_S = float(os.environ.get("MCP_TOOL_DEADLINE_S", "8"))
+
+# Live child processes by server name (for bookmark_continue routing) and internal tools/call ids awaiting a reply.
+_CHILDREN: dict = {}
+_INTERNAL: dict = {}
+_BM_SEQ = itertools.count(1)
 
 async def connect_with_retry(uri, target):
     """Connect to WebSocket server with retry mechanism for a given server target."""
@@ -92,6 +100,7 @@ async def connect_to_server(uri, target, state):
             env.setdefault("PYTHONUNBUFFERED", "1")
 
             process_holder = {"proc": None}
+            _CHILDREN[target] = process_holder
             # Cache Xiaozhi initialize so in-place respawn after deadline can re-handshake
             session_state = {"init_message": None, "initialized": False}
             restart_lock = asyncio.Lock()
@@ -158,6 +167,8 @@ async def connect_to_server(uri, target, state):
         logger.error(f"[{target}] Connection error: {e}")
         raise
     finally:
+        if _CHILDREN.get(target) is locals().get("process_holder"):
+            _CHILDREN.pop(target, None)
         try:
             proc = process_holder.get("proc")
         except Exception:
@@ -297,6 +308,9 @@ async def pipe_websocket_to_process(websocket, process_holder, target, pending_c
                 session_state["initialized"] = True
             if isinstance(msg, dict) and msg.get("method") == "tools/call" and target == MORE_HOST and msg["params"].get("name") == MORE_TOOL:
                 await websocket.send(more_text_response(msg))
+                continue
+            if isinstance(msg, dict) and msg.get("method") == "tools/call" and target == MORE_HOST and msg["params"].get("name") in bookmarks.PIPE_TOOLS:
+                asyncio.create_task(bookmark_call(websocket, msg))
                 continue
             if isinstance(msg, dict) and msg.get("method") == "tools/call":
                 tool = msg["params"]["name"]
@@ -448,6 +462,7 @@ def more_text_response(msg: dict) -> str:
 
 
 def add_more_tool(payload: str) -> str:
+    """Advertise the pipe-served tools (more_text and the bookmark_* tools) in MORE_HOST's tools/list."""
     try:
         msg = json.loads(payload)
     except ValueError:
@@ -456,7 +471,57 @@ def add_more_tool(payload: str) -> str:
     if not isinstance(tools, list) or any(t.get("name") == MORE_TOOL for t in tools):
         return payload
     tools.append(MORE_SPEC)
+    tools.extend(bookmarks.TOOL_SPECS)
     return json.dumps(msg, ensure_ascii=False)
+
+
+# ---- Bookmarks: book servers record their place via bookmarks.record(); the bookmark_* tools are served here (on
+# MORE_HOST). bookmark_continue sends the saved read call to the live child of that book's server and returns its reply.
+async def _child_call(server: str, tool: str, args: dict) -> str:
+    holder = _CHILDREN.get(server)
+    proc = holder.get("proc") if holder else None
+    if proc is None or proc.poll() is not None or proc.stdin is None:
+        raise RuntimeError(f"the {server} server is not running right now")
+    cid = f"bm-{next(_BM_SEQ)}"
+    fut = asyncio.get_running_loop().create_future()
+    _INTERNAL[cid] = fut
+    limit = TOOL_DEADLINE_S - 1
+    try:
+        proc.stdin.write(json.dumps({"jsonrpc": "2.0", "id": cid, "method": "tools/call", "params": {"name": tool, "arguments": args}}, ensure_ascii=False) + "\n")
+        proc.stdin.flush()
+        resp = await asyncio.wait_for(fut, limit)
+    except asyncio.TimeoutError:
+        raise RuntimeError(f"{tool} took longer than {limit:.0f}s") from None
+    finally:
+        _INTERNAL.pop(cid, None)
+    if "error" in resp:
+        raise RuntimeError((resp["error"] or {}).get("message") or "tool error")
+    res = resp.get("result") or {}
+    text = "\n".join(c.get("text", "") for c in res.get("content") or [] if isinstance(c, dict) and c.get("type") == "text")
+    if res.get("isError"):
+        raise RuntimeError(text or f"{tool} failed")
+    return text
+
+
+async def bookmark_call(websocket, msg: dict) -> None:
+    name = msg["params"]["name"]
+    args = msg["params"].get("arguments") or {}
+    t0 = time.monotonic()
+    try:
+        if name == "bookmark_continue":
+            key, server, tool, targs, head = bookmarks.plan_continue(args.get("book"))
+            logger.info(f"[{MORE_HOST}] bookmark_continue book={key} -> {server}/{tool} {json.dumps(targs, ensure_ascii=False)}")
+            text = head + "\n" + await _child_call(server, tool, targs)
+        else:
+            text = bookmarks.handle(name, args)
+        err = False
+    except Exception as e:
+        text, err = f"Error: {e}", True
+    payload = json.dumps({"jsonrpc": "2.0", "id": msg.get("id"), "result": {"content": [{"type": "text", "text": text}], "isError": err}}, ensure_ascii=False)
+    if not err:
+        payload = cap_reply(payload, name)
+    logger.info(f"[{MORE_HOST}] {name} args={json.dumps(args, ensure_ascii=False)} isError={err} ms={(time.monotonic() - t0) * 1000:.0f}")
+    await websocket.send(payload)
 
 
 async def pipe_process_to_websocket(websocket, process_holder, target, pending_calls):
@@ -492,6 +557,16 @@ async def pipe_process_to_websocket(websocket, process_holder, target, pending_c
                 if not payload:
                     continue
                 payload = _slim_payload(payload)
+                if '"bm-' in payload[:200]:
+                    try:
+                        _m = json.loads(payload)
+                    except ValueError:
+                        _m = None
+                    if isinstance(_m, dict) and _m.get("id") in _INTERNAL:
+                        fut = _INTERNAL.pop(_m["id"])
+                        if not fut.done():
+                            fut.set_result(_m)
+                        continue
                 if target == MORE_HOST:
                     payload = add_more_tool(payload)
                 if '"content"' in payload:
@@ -641,6 +716,13 @@ if __name__ == "__main__":
         logger.error("Please set the `MCP_ENDPOINT` environment variable")
         sys.exit(1)
     
+    # Bookmarks volume must be writable before any book server starts (fail loudly, no fallback)
+    try:
+        logger.info(f"Bookmarks file OK: {bookmarks.check_writable()}")
+    except Exception as e:
+        logger.error(f"Bookmarks unavailable: {e}")
+        sys.exit(1)
+
     # Determine target: default to all if no arg; single target otherwise
     target_arg = sys.argv[1] if len(sys.argv) >= 2 else None
 

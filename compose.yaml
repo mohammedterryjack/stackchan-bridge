@@ -7,6 +7,8 @@ services:
     env_file: .env
     read_only: true
     tmpfs: ["/tmp", "/home/bridge:uid=1000,gid=1000"]
+    volumes:
+      - bookmarks:/data/bookmarks
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     networks: [stackchan]
@@ -18,3 +20,7 @@ services:
 
 networks:
   stackchan:
+
+volumes:
+  bookmarks:
+    name: stackchan-bookmarks

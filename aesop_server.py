@@ -8,6 +8,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 import duckdb
 from fastmcp import FastMCP
 
+import bookmarks
+
 DATASET_PARQUET = "hf://datasets/MTerryJack/aesop-fables/data/train.parquet"
 MAX_LIMIT = 5
 SNIPPET_CHARS = 160
@@ -126,6 +128,12 @@ def _fmt(row) -> str:
     return f"{title}. {_speak(text)}{m} (fable {i})"
 
 
+def _mark(row, out: str) -> str:
+    last = _q("SELECT max(id) FROM aesop", [])[0][0]
+    bookmarks.record("aesop", f"fable {row[0]}, {row[1]}", {"fable_id": row[0] + 1} if row[0] < last else None)
+    return out
+
+
 def _read_impl(fable_id: int | None, title: str | None) -> str:
     t = (title or "").strip()
     if (fable_id is None) == (not t):
@@ -135,12 +143,12 @@ def _read_impl(fable_id: int | None, title: str | None) -> str:
         rows = _q("SELECT id, title, text, moral FROM aesop WHERE id = ?", [int(fable_id)])
         if not rows:
             raise LookupError(f"fable_id must be 1 to {n}.")
-        return _fmt(rows[0])
+        return _mark(rows[0], _fmt(rows[0]))
     rows = _q("SELECT id, title, text, moral FROM aesop WHERE contains(lower(title), ?) ORDER BY lower(title) <> ?, length(title), id LIMIT 4", [t.lower(), t.lower()])
     if not rows:
         raise LookupError(f"No fable title contains {t!r}. Try aesop_search.")
     others = "; ".join(f"{r[1]} (fable {r[0]})" for r in rows[1:])
-    return _fmt(rows[0]) + (f"\nOther matches: {others}" if others else "")
+    return _mark(rows[0], _fmt(rows[0]) + (f"\nOther matches: {others}" if others else ""))
 
 
 def _random_impl() -> str:
