@@ -32,7 +32,11 @@ services:
     shm_size: 1g
     stop_grace_period: 75s
     environment:
-      HINDSIGHT_ENABLE_CP: "false"
+      # Control Plane web viewer (memory graph, banks, documents). It talks to the API inside this
+      # container (http://localhost:8888, server-side), so only its own port is published, and only on
+      # the Mac's loopback: open http://127.0.0.1:9999 on the Mac. The API port 8888 stays unpublished.
+      HINDSIGHT_ENABLE_CP: "true"
+      HINDSIGHT_CP_PORT: "9999"
       HINDSIGHT_API_LLM_PROVIDER: ollama
       HINDSIGHT_API_LLM_BASE_URL: http://host.docker.internal:11434/v1
       HINDSIGHT_API_LLM_MODEL: qwen2.5-coder:7b
@@ -53,6 +57,8 @@ services:
       HF_HUB_OFFLINE: "1"
     volumes:
       - hindsight-data:/home/hindsight/.pg0
+    ports:
+      - "127.0.0.1:9999:9999"
     networks: [stackchan]
     healthcheck:
       test: ["CMD", "python3", "-m", "hindsight_api.http_probe", "http://localhost:8888/health", "5"]
