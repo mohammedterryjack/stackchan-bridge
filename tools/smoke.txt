@@ -87,6 +87,9 @@ female-awliya|safwa_women_random|{}
 habib-omar|habib_omar_latest|{"limit":3}
 habib-omar|habib_omar_latest|{"source":"news","limit":2}
 habib-omar|habib_omar_latest|{"source":"muwasala","limit":2}
+habib-omar|habib_omar_latest|{"source":"telegram","limit":3}
+habib-omar|habib_omar_latest|{"source":"youtube","limit":2}
+habib-omar|habib_omar_read|{"index":1,"source":"news"}
 habib-omar|habib_omar_read|{"index":1,"part":1}
 recipes|recipe_suggest|{}
 recipes|recipe_suggest|{"ingredient":"chicken","cuisine":"Indian"}

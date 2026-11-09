@@ -5,6 +5,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt fastmcp duckduckgo-mcp-server workspace-mcp mcp-server-time wikipedia-mcp "mcp[cli]>=1.6.0" "httpx>=0.28.1" "requests>=2.32.3" "duckdb==1.3.2"
 # Japanese romaji (japanese server): MeCab tokenizer + bundled unidic-lite dictionary, baked in at build time
 RUN pip install --no-cache-dir "fugashi==1.5.2" "unidic-lite==1.0.8"
+# Hijri -> Gregorian dates for alhabibumar.com news (habib-omar server), Umm al-Qura calendar, pure Python
+RUN pip install --no-cache-dir "hijridate==2.6.0"
 # hackernews/reddit need mcp 1.x; isolated venv so they do not clash with mcp 2.x above
 RUN python -m venv /opt/social && /opt/social/bin/pip install --no-cache-dir "mcp>=1.20,<2" mcp-hn==0.1.0 mcp-server-reddit==0.2.1
 # youtube 0.8.3 (needs mcp 2.x, supports --response-limit) is not on PyPI; pinned to GitHub commit
