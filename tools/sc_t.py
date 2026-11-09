@@ -2,10 +2,13 @@ import json,subprocess,sys,os,time
 os.environ['BOOKMARKS_FILE']='/data/bookmarks/smoke-test.json'  # tests never touch the real bookmarks.json
 os.environ['MEMORY_BANK']='stackchan-smoke'  # tests never touch Mo's real memory bank
 HEAD='';EXPECT=None
-if sys.argv[1]=='hindsight':  # test helpers for the smoke bank only: reset (delete the bank) / wait (Hindsight up + nothing pending)
+if sys.argv[1]=='hindsight':  # test helpers for the smoke bank only: reset (delete the bank) / wait (Hindsight up + nothing pending) / wait-reflect
   import httpx;B=os.environ['HINDSIGHT_URL'].rstrip('/');A=B+'/v1/default/banks/'+os.environ['MEMORY_BANK'];t0=time.time();ok=False
   if sys.argv[2]=='reset':
-    r=httpx.delete(A,timeout=30);ok=r.status_code in (200,404);print(f"deleted bank {os.environ['MEMORY_BANK']} (memory_server recreates it): HTTP {r.status_code}")
+    r=httpx.delete(A,timeout=30);ok=r.status_code in (200,404)
+    F=f"/data/bookmarks/reflections-{os.environ['MEMORY_BANK']}.json"
+    if os.path.exists(F):os.remove(F)
+    print(f"deleted bank {os.environ['MEMORY_BANK']} (memory_server recreates it): HTTP {r.status_code}")
   elif sys.argv[2]=='wait':
     while time.time()-t0<float(json.loads(sys.argv[3] or '{}').get('max_s',300)):
       try:
@@ -15,6 +18,13 @@ if sys.argv[1]=='hindsight':  # test helpers for the smoke bank only: reset (del
       except httpx.HTTPError:pass
       time.sleep(2)
     else:print('timed out waiting for Hindsight')
+  elif sys.argv[2]=='wait-reflect':  # until the newest reflection job of the smoke bank has finished
+    F=f"/data/bookmarks/reflections-{os.environ['MEMORY_BANK']}.json"
+    while time.time()-t0<float(json.loads(sys.argv[3] or '{}').get('max_s',1800)):
+      j=json.load(open(F))['jobs'][-1]
+      if j['status'] in ('done','failed'):ok=j['status']=='done';print(f"reflection {j['status']} after {(j['finished']-(j.get('started') or j['created'])):.0f}s");break
+      time.sleep(5)
+    else:print('timed out waiting for the reflection')
   print(f"--- {time.time()-t0:.1f}s err={not ok}");sys.exit()
 if sys.argv[1]=='bookmarks':  # pipe-served tools: same bookmarks module as mcp_pipe; continue runs the saved read call
   sys.path.insert(0,'/app');import bookmarks;t0=time.time();a=json.loads(sys.argv[3] if len(sys.argv)>3 else '{}')

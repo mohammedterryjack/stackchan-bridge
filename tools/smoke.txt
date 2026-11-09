@@ -130,3 +130,7 @@ memory|memory_status|{}
 hindsight|wait|{"max_s":180}
 !restart||
 memory|memory_recall|{"query":"Japanese snack","_expect":"Kit Kat"}
+# memory reflection (background): start one on the smoke bank and check the status reply; make test-reflect waits for completion
+memory|memory_reflection|{"question":"never asked xyz","_expect":"haven't been asked"}
+memory|memory_reflect|{"question":"What snack should I bring Mo as a gift?","_expect":"thinking about"}
+memory|memory_reflection|{"question":"snack","_expect":"snack"}

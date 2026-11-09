@@ -4,14 +4,16 @@ CONTAINER ?= stackchan-bridge
 export BRIDGE_CONTAINER := $(CONTAINER)
 COMPOSE := docker compose
 PLACEHOLDER := your-xiaozhi-mcp-endpoint-goes-here
+SMOKE ?= tools/smoke.txt
 
-.PHONY: help check env build up setup run logs test stop restart
+.PHONY: help check env build up setup run logs test test-reflect stop restart
 
 help:
 	@echo "make setup    check tools, check .env, build and start the bridge"
 	@echo "make run      same as setup"
 	@echo "make logs     follow bridge logs"
 	@echo "make test     call one tool on every server inside the running bridge"
+	@echo "make test-reflect  opt-in: run one memory reflection to completion on the smoke bank (minutes)"
 	@echo "make stop     stop the bridge"
 	@echo "make restart  restart the bridge"
 
@@ -38,7 +40,10 @@ logs:
 	docker logs -f --tail 100 $(CONTAINER)
 
 test:
-	@fail=0; while IFS='|' read -r srv tool args; do [ -z "$$srv" ] || [ "$${srv:0:1}" = "#" ] && continue; if [ "$$srv" = "!restart" ]; then c=$${tool:-$(CONTAINER)}; if docker restart $$c >/dev/null; then echo "PASS restart $$c (saved state must survive it)"; else echo "FAIL restart $$c"; fail=1; fi; continue; fi; out=$$(docker exec -i $(CONTAINER) python - "$$srv" "$$tool" "$$args" < tools/sc_t.py 2>&1); last=$$(tail -1 <<<"$$out"); if grep -q 'err=False' <<<"$$last"; then echo "PASS $$srv/$$tool $$last"; else echo "FAIL $$srv/$$tool $$last"; fail=1; fi; done < tools/smoke.txt; exit $$fail
+	@fail=0; while IFS='|' read -r srv tool args; do [ -z "$$srv" ] || [ "$${srv:0:1}" = "#" ] && continue; if [ "$$srv" = "!restart" ]; then c=$${tool:-$(CONTAINER)}; if docker restart $$c >/dev/null; then echo "PASS restart $$c (saved state must survive it)"; else echo "FAIL restart $$c"; fail=1; fi; continue; fi; out=$$(docker exec -i $(CONTAINER) python - "$$srv" "$$tool" "$$args" < tools/sc_t.py 2>&1); last=$$(tail -1 <<<"$$out"); if grep -q 'err=False' <<<"$$last"; then echo "PASS $$srv/$$tool $$last"; else echo "FAIL $$srv/$$tool $$last"; fail=1; fi; done < $(SMOKE); exit $$fail
+
+test-reflect:
+	@$(MAKE) --no-print-directory test SMOKE=tools/smoke-reflect.txt
 
 stop:
 	$(COMPOSE) stop stackchan-bridge

@@ -1,0 +1,5 @@
+# opt-in (make test-reflect): learn a fact, reflect on it in the background, wait (up to 30 min) and read the answer
+memory|memory_learn|{"text":"My favourite Japanese snack is matcha Kit Kat."}
+memory|memory_reflect|{"question":"What snack should I bring Mo as a gift?","_expect":"thinking about"}
+hindsight|wait-reflect|{"max_s":1800}
+memory|memory_reflection|{"question":"snack","_expect":"My reflection on"}

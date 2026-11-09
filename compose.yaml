@@ -3,6 +3,7 @@ services:
     build:
       context: .
     container_name: ${BRIDGE_CONTAINER:-stackchan-bridge}
+    init: true  # reaps the detached memory reflect worker
     restart: unless-stopped
     env_file: .env
     read_only: true
@@ -40,7 +41,14 @@ services:
       HINDSIGHT_API_RETAIN_MAX_COMPLETION_TOKENS: "4096"
       HINDSIGHT_API_WORKER_ID: stackchan-hindsight
       HINDSIGHT_API_ENABLE_BANK_LLM_HEALTH: "true"
-      HINDSIGHT_API_ENABLE_OBSERVATIONS: "false"
+      # Reflect is an agentic tool-calling loop on the shared 7B: give each LLM call and the whole
+      # job minutes (it runs in the background from memory_server), and keep its context inside 8192.
+      HINDSIGHT_API_LLM_TIMEOUT: "600"
+      HINDSIGHT_API_REFLECT_LLM_TIMEOUT: "600"
+      HINDSIGHT_API_REFLECT_WALL_TIMEOUT: "1800"
+      HINDSIGHT_API_REFLECT_MAX_ITERATIONS: "5"
+      HINDSIGHT_API_REFLECT_MAX_CONTEXT_TOKENS: "4500"
+      HINDSIGHT_API_REFLECT_MAX_COMPLETION_TOKENS: "1024"
       HINDSIGHT_API_BANK_STATS_CACHE_TTL_SECONDS: "0"
       HF_HUB_OFFLINE: "1"
     volumes:
