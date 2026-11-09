@@ -1,0 +1,2 @@
+# opt-in (make test-web): exactly one DuckDuckGo search, so test runs never provoke its bot check
+web-search|web_search|{"query":"stack-chan robot","max_results":2}

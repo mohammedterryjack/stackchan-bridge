@@ -1,6 +1,5 @@
 # server|tool|json args  (used by: make test)
 calculator|calculator|{"python_expression":"2+3*4"}
-web-search|web_search|{"query":"stack-chan robot","max_results":2}
 time|time_now|{"timezone":"Europe/London"}
 hackernews|hn_top_stories|{"num_stories":2}
 youtube|youtube_info|{"video":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}

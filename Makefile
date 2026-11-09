@@ -6,13 +6,14 @@ COMPOSE := docker compose
 PLACEHOLDER := your-xiaozhi-mcp-endpoint-goes-here
 SMOKE ?= tools/smoke.txt
 
-.PHONY: help check env build up setup run logs test test-reflect stop restart
+.PHONY: help check env build up setup run logs test test-reflect test-web stop restart
 
 help:
 	@echo "make setup    check tools, check .env, build and start the bridge"
 	@echo "make run      same as setup"
 	@echo "make logs     follow bridge logs"
 	@echo "make test     call one tool on every server inside the running bridge"
+	@echo "make test-web  opt-in: one DuckDuckGo web search (kept out of make test so it never trips their bot check)"
 	@echo "make test-reflect  opt-in: run one memory reflection to completion on the smoke bank (minutes)"
 	@echo "make stop     stop the bridge"
 	@echo "make restart  restart the bridge"
@@ -44,6 +45,9 @@ test:
 
 test-reflect:
 	@$(MAKE) --no-print-directory test SMOKE=tools/smoke-reflect.txt
+
+test-web:
+	@$(MAKE) --no-print-directory test SMOKE=tools/smoke-web.txt
 
 stop:
 	$(COMPOSE) stop stackchan-bridge

@@ -10,7 +10,7 @@ A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, c
 
 Reply cap: mcp_pipe.py caps every tool reply at ~800 chars (max 1000), splitting on sentence/verse boundaries with "Part N of M" notes; Stack-chan calls more_text(part=N) to continue.
 
-- web-search: web_search, web_read
+- web-search: web_search, web_read (DuckDuckGo: 5 min cache, 2 s between searches; on a bot check or dropped connection it stops for 15 min and says 'DuckDuckGo is rate-limiting us, try again in N minutes' instead of retrying)
 - time: time_now, time_convert (city or timezone required, no default)
 - hackernews: hn_top_stories, hn_search, hn_story, hn_user
 - youtube: youtube_transcript, youtube_info
@@ -66,6 +66,8 @@ The first `make setup` creates `.env` from `.env.example` and stops with a messa
 |---|---|
 | `make setup` / `make run` | check prerequisites and `.env`, build and start the bridge |
 | `make test` | call one tool on every server inside the running bridge (list in `tools/smoke.txt`); prints PASS/FAIL, exits non-zero on any failure |
+| `make test-web` | opt-in: exactly one DuckDuckGo web search (`tools/smoke-web.txt`); kept out of `make test` so test runs don't trip DuckDuckGo's bot check |
+| `make test-reflect` | opt-in: one memory reflection run to completion on the smoke bank (minutes) |
 | `make logs` | follow the bridge logs (don't paste them publicly without checking for your endpoint) |
 | `make restart` / `make stop` | restart or stop the bridge |
 
