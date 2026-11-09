@@ -179,7 +179,7 @@ def _search_impl(query: str, limit: int) -> str:
     )
     note(*[r[0] for r in rows])
     if not rows:
-        return f"No hadith or commentary contains all of {terms} (searched as {phrase!r}). Try fewer or other Arabic words, or bahjat_random()."
+        return f"No hadith or commentary contains all of {terms} (searched as {phrase!r}). Try fewer or other Arabic words, or bahjat_read()."
     out = [f"{_snippet(t, phrase if phrase in t else terms[0])} {_ref(h, c, v, cf)} -> bahjat_read(hadith_number={h})" for h, c, v, cf, t in rows]
     return f"{NOTE}\nSearched for {phrase!r}:\n" + "\n".join(out)
 
@@ -189,26 +189,20 @@ def _random_impl() -> str:
     return _read_impl(hn, 1)
 
 
-@mcp.tool()
+def _read_or_random(hadith_number: int | None, part: int) -> str:
+    return _random_impl() if hadith_number is None else _read_impl(hadith_number, part, True)
+
+
+@mcp.tool(name="bahjat_read", description="Ibn Abi Jamrah's Bahjat al-Nufus (Arabic commentary on Bukhari hadith): read hadith 1-287 with its commentary in parts, or a random one with no number. Translate the Arabic when speaking.")
 @logged(log)
-def bahjat_read(hadith_number: int, part: int = 1) -> str:
-    """Use when the user asks for Ibn Abi Jamrah's commentary on a hadith (Bahjat al-Nufus, his commentary on his Bukhari abridgement Mukhtasar Sahih al-Bukhari / Jam' al-Nihaya), e.g. "Ibn Abi Jamrah commentary on hadith 3", "read on", or a hadith_number from bahjat_search. hadith_number 1-287 (his numbering, not Bukhari's). part pages the commentary (1, 2, ...). Text is classical Arabic (OCR): translate or explain it when speaking. Returns the hadith, one part of commentary and a Next: call."""
-    return _run(_read_impl, hadith_number, part, True)
+def bahjat_read(hadith_number: int | None = None, part: int = 1) -> str:
+    return _run(_read_or_random, hadith_number, part)
 
 
-@mcp.tool()
+@mcp.tool(name="bahjat_search", description="Bahjat al-Nufus: find what Ibn Abi Jamrah says about a topic (Arabic or English words, e.g. dreams, intention).")
 @logged(log)
 def bahjat_search(query: str, limit: int = 3) -> str:
-    """Use when the user asks what Ibn Abi Jamrah / Bahjat al-Nufus says about a topic, e.g. "what does Ibn Abi Jamrah say about dreams", "a hadith commentary on intention". query: Arabic keywords (الرؤيا, الصلاة, النية) or common English topic words (dream, prayer, intention, faith, revelation, patience); all words must match. limit 1-5. Returns snippets, each with the bahjat_read call that opens it."""
     return _run(_search_impl, query, limit)
-
-
-@mcp.tool()
-@logged(log)
-def bahjat_random() -> str:
-    """Use when the user asks for any hadith with commentary, or a random lesson from Bahjat al-Nufus. Text is classical Arabic: translate or explain it. Returns one hadith and the start of its commentary."""
-    return _run(_random_impl)
-
 
 if __name__ == "__main__":
     try:

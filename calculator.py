@@ -18,7 +18,7 @@ _SAFE = {"__builtins__": {}, "math": math}
 
 @mcp.tool()
 def calculator(python_expression: str) -> str:
-    """Use for any maths or sum, e.g. 'what is 15% of 240'. python_expression: Python maths like 0.15*240 or math.sqrt(2). Returns the number."""
+    """Maths and sums, e.g. what is 15% of 240. python_expression: Python maths such as 0.15*240 or math.sqrt(2)."""
     expr = (python_expression or "").strip()
     if not expr:
         raise ValueError("python_expression must be non-empty")

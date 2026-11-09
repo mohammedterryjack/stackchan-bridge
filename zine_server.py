@@ -192,7 +192,7 @@ def zine_search(
     zine: str | None = None,
     limit: int = 5,
 ) -> str:
-    """Use when the user asks about hacker zines or classic hacking articles (Phrack, PoC||GTFO, tmp.0ut). zine optional: phrack|pocorgtfo|tmpout. limit 1-5. Returns lines: title (id) - snippet; zine_read opens one."""
+    """Hacker zines (Phrack, PoC||GTFO, tmp.0ut): find classic hacking articles on a topic."""
     if zine:
         k = re.sub(r"[^a-z0-9]", "", zine.lower())
         zine = {"phrack": "phrack", "pocorgtfo": "pocorgtfo", "pocgtfo": "pocorgtfo", "tmpout": "tmpout", "tmp0ut": "tmpout"}.get(k, zine)
@@ -201,7 +201,7 @@ def zine_search(
 
 @mcp.tool()
 def zine_read(id: str) -> str:
-    """Use to read one zine section. id from zine_search, e.g. phrack-69-07-003. Returns its text."""
+    """Read one zine section by its id from zine_search."""
     return _run(_read_impl, id)
 
 

@@ -36,11 +36,8 @@ MUWASALA_API = ("https://muwasala.org/wp-json/wp/v2/posts?search=Answered%20by%2
                 "&per_page=10&_fields=id,date,title,link,content,excerpt")
 SOURCES = ("telegram", "youtube", "news", "muwasala")
 LABEL = "Habib Omar bin Hafiz"
-A = ("Habib Omar bin Hafiz (الحبيب عمر بن حفيظ, also Habib Umar bin Hafiz / Sayyidi al-Habib): use when the user asks "
-     "for Habib Omar / Habib Umar updates, latest news, lessons, talks, live streams, teachings, or what he has been "
-     "doing recently.")
-H = ("Each item has its date: mention it so the user knows how recent it is. Arabic text: explain or translate in the "
-     "user's language. Keep speech short; use part=N+1 for more.")
+A = "Habib Omar bin Hafiz (Habib Umar):"
+H = "Say each item's date; translate Arabic when speaking."
 
 _cache: dict[str, tuple[float, object]] = {}
 _last_list: dict[str, list[dict]] = {}
@@ -195,14 +192,7 @@ def _age(when: datetime) -> str:
     return f"{int(hours)} hours ago" if hours < 48 else f"{int(hours // 24)} days ago"
 
 
-@mcp.tool(
-    name="habib_omar_latest",
-    description=f"{A} Lists the latest updates, newest first, each with its date. source: all (default, merged) | "
-                "telegram (official channel t.me/HabibOmar: lessons, live streams, clips, several a day) | youtube "
-                "(official channel) | news (alhabibumar.com Arabic news, Hijri-dated) | muwasala (English answers "
-                "by Sayyidi Habib Umar, an older archive). limit 1-10 (default 5). Open one with "
-                f"habib_omar_read(index=N, source=same). Live fetch only. {H}",
-)
+@mcp.tool(name="habib_omar_latest", description=f"{A} his latest lessons, talks, live streams and news, newest first; source all (default), telegram, youtube, news or muwasala. {H}")
 @logged(log)
 def habib_omar_latest(source: str | None = None, limit: int = 5) -> str:
     if not 1 <= int(limit) <= MAX_LIMIT:
@@ -245,12 +235,7 @@ def _parts(text: str) -> list[str]:
     return [p for p in out if p]
 
 
-@mcp.tool(
-    name="habib_omar_read",
-    description=f"{A} Reads one update in full. index: number from habib_omar_latest with the same source (default "
-                "all); or url of an alhabibumar.com or muwasala.org page. part 1.. for short spoken chunks (~800 "
-                f"chars). Live fetch; nothing stored. {H}",
-)
+@mcp.tool(name="habib_omar_read", description=f"{A} read one update in full by its number from habib_omar_latest (same source) or a page url, in parts. {H}")
 @logged(log)
 def habib_omar_read(index: int | None = None, url: str | None = None, part: int = 1, source: str | None = None) -> str:
     p = int(part)

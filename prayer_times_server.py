@@ -120,7 +120,7 @@ def prayer_times(
     date: str = "today",
     method: int = DEFAULT_METHOD,
 ) -> str:
-    """Use when the user asks for Islamic prayer (salah) times for a day. city and country required (e.g. Leeds, UK); if the user did not say where, ask which city first. date: today, tomorrow or YYYY-MM-DD (default today). Returns all five times."""
+    """Islamic prayer (salah) times for a city and country, today, tomorrow or a date; ask the city if not given."""
     city, country = _need(city, country)
     d = (date or "").strip().lower()
     if d in ("", "today"):
@@ -151,7 +151,7 @@ def prayer_next(
     country: str,
     method: int = DEFAULT_METHOD,
 ) -> str:
-    """Use when the user asks when the next prayer is or how long until it. city and country required (e.g. Leeds, UK); if the user did not say where, ask which city first. Returns the next prayer, its time and the time left."""
+    """The next prayer for a city and country and how long until it."""
     city, country = _need(city, country)
     now = _local_now(city, country, method)
     info = _fetch_timings(_today_str(now), city, country, method)
@@ -184,7 +184,7 @@ def prayer_next(
 
 @mcp.tool()
 def prayer_alarms(city: str, country: str, prayer: str, method: int = DEFAULT_METHOD) -> str:
-    """Use when the user asks for a prayer reminder or alarm. city and country required (e.g. Leeds, UK); if the user did not say where, ask which city first. prayer: fajr, dhuhr, asr, maghrib, isha, or 1-5 (1 Fajr ... 5 Isha), or all. Returns seconds until each prayer; then call self.robot.create_reminder once per line with that duration_seconds, message and repeat=false. Reminders are one-off and lost if the robot restarts."""
+    """Prayer reminder or alarm: gives the seconds until a prayer (fajr to isha, or all) for a city; then call self.robot.create_reminder with them."""
     city, country = _need(city, country)
     p = (prayer or "").strip().lower()
     names = {n.lower(): n for n in SALAH_ORDER}

@@ -85,9 +85,8 @@ def _mark_quran(out: str, info: dict, total: int, count: int, arabic: bool) -> s
     return out
 
 
-@mcp.tool()
+@mcp.tool(name="quran_read", description="Quran: read verses by surah name or number and ayah, or '2:255'; count 1-5.")
 def quran_read(surah: str, ayah: int = 1, count: int = 3, arabic: bool = True) -> str:
-    """Use when the user asks to hear Quran verses or a surah. surah: name (Al-Baqarah, Yasin, The Cow) or number, or 'surah:ayah' like '2:255' (then ayah is ignored). count 1-5 (default 3). arabic: include Arabic if it fits. Returns verses ending '(quran 2:255)'; call again with the next ayah to continue."""
     s = str(surah).strip()
     m = re.fullmatch(r"(\d{1,3})\s*[:.]\s*(\d{1,3})", s)
     if m:
@@ -123,9 +122,8 @@ def quran_read(surah: str, ayah: int = 1, count: int = 3, arabic: bool = True) -
             return _mark_quran(out, info, total, count, arabic)
 
 
-@mcp.tool()
+@mcp.tool(name="quran_search", description="Quran: find verses about a topic in English words, e.g. patience.")
 def quran_search(query: str, limit: int = 3) -> str:
-    """Use when the user asks what the Quran says about a topic, e.g. 'patience'. query: English words. limit 1-5 (default 3). Returns one verse per line ending '(quran s:a)'; quran_read reads more."""
     q = (query or "").strip()
     if not q:
         raise ValueError("query required")
@@ -177,19 +175,7 @@ def _hadith(c: str, number: int, arabic: bool) -> str:
     return "\n".join(parts)
 
 
-@mcp.tool()
-def hadith_get(collection: str, number: int, arabic: bool = False) -> str:
-    """Use when the user asks for a specific hadith by collection and number, e.g. 'Bukhari 1'. collection: bukhari|muslim|abudawud|tirmidhi|nasai|ibnmajah|malik|nawawi|qudsi. arabic: add Arabic if short. Returns the hadith ending '(bukhari 1)'."""
-    c, n = _coll(collection), int(number)
-    out = _hadith(c, n, arabic)
-    bookmarks.record("hadith", f"{COLLECTIONS[c][0]}, hadith {n}", {"collection": c, "number": n + 1, "arabic": arabic} if n < COLLECTIONS[c][1] else None)
-    return out
-
-
-@mcp.tool()
-def hadith_random(collection: str = "nawawi") -> str:
-    """Use when the user asks for a hadith or a saying of the Prophet without giving a number. collection default nawawi (Forty Hadith); also bukhari, muslim, qudsi, etc. Returns one hadith."""
-    c = _coll(collection)
+def _random_hadith(c: str) -> str:
     tried = []
     for n in random.sample(range(1, COLLECTIONS[c][1] + 1), 5):
         try:
@@ -197,6 +183,17 @@ def hadith_random(collection: str = "nawawi") -> str:
         except LookupError:
             tried.append(n)
     raise LookupError(f"{c} numbers {tried} all lacked English text")
+
+
+@mcp.tool(name="hadith_get", description="Hadith: read one by collection and number (e.g. Bukhari 1), or a random one when no number is given (default collection Nawawi's Forty).")
+def hadith_get(collection: str = "nawawi", number: int | None = None, arabic: bool = False) -> str:
+    c = _coll(collection)
+    if number is None:
+        return _random_hadith(c)
+    n = int(number)
+    out = _hadith(c, n, arabic)
+    bookmarks.record("hadith", f"{COLLECTIONS[c][0]}, hadith {n}", {"collection": c, "number": n + 1, "arabic": arabic} if n < COLLECTIONS[c][1] else None)
+    return out
 
 
 if __name__ == "__main__":

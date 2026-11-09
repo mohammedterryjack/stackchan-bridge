@@ -1,6 +1,6 @@
 """Japanese learning MCP for Stack-chan's English TTS voice: every reply is ASCII romaji, English first then Japanese.
-Tools: japanese_word (live jisho.org lookup, small in-memory cache), japanese_phrase_random / japanese_phrase_search /
-japanese_phrase_topics (hf://datasets/MTerryJack/japanese-phrases, Tatoeba eng-jpn CC BY 2.0 FR, DuckDB in memory, no
+Tools: japanese_word (live jisho.org lookup, small in-memory cache), japanese_phrase / japanese_phrase /
+japanese_phrase (hf://datasets/MTerryJack/japanese-phrases, Tatoeba eng-jpn CC BY 2.0 FR, DuckDB in memory, no
 downloads kept) and japanese_to_romaji (fugashi + unidic-lite baked into the image). Fails loudly; no fallbacks."""
 
 from __future__ import annotations
@@ -24,9 +24,7 @@ TIMEOUT = httpx.Timeout(connect=4, read=6, write=4, pool=4)
 CACHE_TTL, CACHE_MAX = 900, 200
 MAX_LIMIT = 5
 LEVELS = ("beginner", "intermediate")
-U = ("Use when the user wants to learn Japanese, asks how to say something in Japanese, or wants a Japanese word or "
-     "phrase. Replies are romaji only (no kana or kanji) so your English voice can read them: say the English first, "
-     "then 'In Japanese:' and the romaji, slowly, maybe twice.")
+U = "Japanese lessons, replies in romaji: say the English, then 'In Japanese:' and the romaji."
 
 log = get_logger("JAPANESE")
 mcp = FastMCP("Japanese")
@@ -92,18 +90,13 @@ def _fmt_rows(rows: list) -> str:
     return "\n".join(_say(en, ro) for _, en, ro in rows)
 
 
-@mcp.tool(name="japanese_phrase_random", description=(
-    f"{U} Gives a random English-Japanese practice phrase (a mini lesson). Optional topic (see japanese_phrase_topics: "
-    "greetings, food, travel, shopping, time, weather, family, feelings, school and work, home, numbers, general) and "
-    "level beginner (default, up to 4 words) or intermediate. Example reply: 'Thank you. In Japanese: arigatou gozaimasu.'"))
-@logged(log)
-def japanese_phrase_random(topic: str | None = None, level: str | None = "beginner") -> str:
+def _phrase_random(topic: str | None = None, level: str | None = "beginner") -> str:
     lv = _level(level)
     where, params = [], []
     if topic and topic.strip():
         tp = topic.strip().lower()
         if tp not in _topics():
-            raise ValueError(f"topic {topic!r} is not known; use one of: {', '.join(_topics())}")
+            raise ValueError(f"topic {topic!r} is not known; topics: {_phrase_topics()}")
         where.append("topic = ?")
         params.append(tp)
     if lv:
@@ -117,12 +110,7 @@ def japanese_phrase_random(topic: str | None = None, level: str | None = "beginn
     return _fmt_rows(rows)
 
 
-@mcp.tool(name="japanese_phrase_search", description=(
-    f"{U} Finds example phrases by English keywords (all must appear, e.g. 'where station', 'thank you', 'how much') "
-    "or by romaji (e.g. 'arigatou'). limit 1-5, optional level beginner/intermediate. Shortest matches first. "
-    "For one word's translation use japanese_word; for your own translation use japanese_to_romaji."))
-@logged(log)
-def japanese_phrase_search(query: str, limit: int = 3, level: str | None = None) -> str:
+def _phrase_search(query: str, limit: int = 3, level: str | None = None) -> str:
     if not 1 <= int(limit) <= MAX_LIMIT:
         raise ValueError(f"limit {limit} is out of range: use 1 to {MAX_LIMIT}")
     words = re.findall(r"[a-z0-9']+", (query or "").lower())
@@ -141,12 +129,19 @@ def japanese_phrase_search(query: str, limit: int = 3, level: str | None = None)
             "translate it yourself and call japanese_to_romaji.")
 
 
-@mcp.tool(name="japanese_phrase_topics", description=(
-    f"{U} Lists the phrase topics with how many phrases each has, for japanese_phrase_random(topic=...)."))
-@logged(log)
-def japanese_phrase_topics() -> str:
+def _phrase_topics() -> str:
     rows = _q("SELECT topic, count(*), count(*) FILTER (WHERE level = 'beginner') FROM t GROUP BY 1 ORDER BY 2 DESC", [])
     return "Japanese phrase topics: " + "; ".join(f"{t} ({n}, {b} beginner)" for t, n, b in rows) + "."
+
+
+@mcp.tool(name="japanese_phrase", description=f"{U} A practice phrase: random by topic (greetings, food, travel, shopping, time, weather, family, feelings, school and work, home, numbers, general) and level (beginner, intermediate), or search with query in English or romaji (e.g. 'thank you').")
+@logged(log)
+def japanese_phrase(query: str | None = None, topic: str | None = None, level: str | None = None, limit: int = 3) -> str:
+    if query and query.strip():
+        if topic:
+            raise ValueError("give either query (search) or topic (random), not both")
+        return _phrase_search(query, limit, level)
+    return _phrase_random(topic, level or "beginner")
 
 
 def _jisho(keyword: str) -> list:
@@ -168,10 +163,7 @@ def _plain(d: str) -> str:
     return re.sub(r"\s*\([^)]*\)", "", d).strip()
 
 
-@mcp.tool(name="japanese_word", description=(
-    f"{U} Looks up how to say an English word or short expression in Japanese (live jisho.org dictionary): returns up "
-    "to 'limit' (1-5) Japanese words as romaji with their English meanings, common words first. "
-    "Example reply: 'Water. In Japanese: mizu (water). Also: suibun (water, liquid, fluid).'"))
+@mcp.tool(name="japanese_word", description=f"{U} How to say an English word in Japanese (live dictionary).")
 @logged(log)
 def japanese_word(english: str, limit: int = 3) -> str:
     if not 1 <= int(limit) <= MAX_LIMIT:
@@ -213,10 +205,7 @@ def japanese_word(english: str, limit: int = 3) -> str:
     return res
 
 
-@mcp.tool(name="japanese_to_romaji", description=(
-    f"{U} Converts Japanese text (kana/kanji) to romaji so you can speak it. Use after you translate a sentence into "
-    "Japanese yourself: pass the Japanese as text and the English as english; reply is 'English. In Japanese: romaji.' "
-    "Never speak kana or kanji directly; always speak this romaji."))
+@mcp.tool(name="japanese_to_romaji", description=f"{U} After you translate a sentence into Japanese yourself, pass the Japanese text and the English to get speakable romaji; never speak kana or kanji.")
 @logged(log)
 def japanese_to_romaji(text: str, english: str | None = None) -> str:
     if not text or not has_japanese(text):

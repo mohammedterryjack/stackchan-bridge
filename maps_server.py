@@ -94,7 +94,7 @@ def _dist_words(km: float) -> str:
 
 @mcp.tool()
 def map_search(query: str, limit: int = 3) -> str:
-    """Use when the user asks where a place, address or landmark is. query: include the town or country, e.g. 'Big Ben London'. Returns matching places with addresses."""
+    """Where a place, address or landmark is (include the town)."""
     q = query.strip()
     if not q:
         raise ValueError("Say what to find, e.g. 'British Museum London'.")
@@ -108,7 +108,7 @@ def map_search(query: str, limit: int = 3) -> str:
 
 @mcp.tool()
 def map_nearby(place: str, kind: str, limit: int = 3) -> str:
-    """Use when the user asks for the nearest cafe, mosque, pharmacy etc. to a place (within 3 km). place: e.g. 'Kings Cross London'. kind: cafe, restaurant, fast food, pub, mosque, church, pharmacy, hospital, atm, bank, fuel, parking, toilets, library, school, supermarket, bakery, park, gym, hotel, museum, station, bus stop. Returns the closest places."""
+    """The nearest cafe, mosque, pharmacy, shop etc. within 3 km of a place."""
     k = kind.strip().lower()
     k = ALIASES.get(k, k)
     if k not in KINDS and k.endswith("s") and k[:-1] in KINDS:
@@ -138,7 +138,7 @@ def map_nearby(place: str, kind: str, limit: int = 3) -> str:
 
 @mcp.tool()
 def map_distance(origin: str, destination: str) -> str:
-    """Use when the user asks how far apart two places are or how long the drive is, e.g. origin='Oxford', destination='Cambridge'. Returns road distance and rough driving time."""
+    """Road distance and rough driving time between two places."""
     a, b = _locate(origin), _locate(destination)
     r = httpx.get(OSRM.format(a=f"{a['lon']},{a['lat']}", b=f"{b['lon']},{b['lat']}"),
                   params={"overview": "false"}, headers=UA, timeout=HTTP_TIMEOUT_S)

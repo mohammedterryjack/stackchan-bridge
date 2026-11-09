@@ -1,5 +1,5 @@
 """Recipes MCP: live fetch from TheMealDB free public API (test key '1'); small in-memory cache, no storage.
-Tools: recipe_suggest, recipe_search, recipe_by_ingredient, recipe_read, recipe_ingredients. Fails loudly."""
+Tools: recipe_suggest, recipe_search, recipe_search(ingredient=...), recipe_read, recipe_ingredients. Fails loudly."""
 
 from __future__ import annotations
 
@@ -22,8 +22,7 @@ CACHE_TTL = 600
 CACHE_MAX = 200
 PART_CHARS = 700
 LIST_MAX = 8
-U = ("Use when the user asks for a recipe, what to cook, or ingredients to buy (TheMealDB recipes). "
-     "Stack-chan may adapt the method for the Tokit Omni Cook (chop/mix/steam/cook modes) if the user has it.")
+U = "Recipes (TheMealDB):"
 
 _cache: dict[str, tuple[float, dict]] = {}
 
@@ -128,7 +127,7 @@ def _area(cuisine: str) -> list[dict]:
     return []
 
 
-@mcp.tool(name="recipe_suggest", description=f"{U} Suggests one recipe. Optional ingredient (e.g. chicken), cuisine (e.g. Indian, Moroccan) or category (e.g. Vegetarian, Dessert, Seafood); otherwise a random one.")
+@mcp.tool(name="recipe_suggest", description=f"{U} suggest one recipe, optionally with an ingredient, cuisine (e.g. Indian) or category (e.g. Vegetarian, Dessert); random otherwise.")
 @logged(log)
 def recipe_suggest(ingredient: str | None = None, cuisine: str | None = None, category: str | None = None) -> str:
     pools = []
@@ -152,21 +151,23 @@ def recipe_suggest(ingredient: str | None = None, cuisine: str | None = None, ca
     return _summary(m)
 
 
-@mcp.tool(name="recipe_search", description=f"{U} Searches recipes by dish name (e.g. lasagne, biryani).")
+@mcp.tool(name="recipe_search", description=f"{U} find recipes by dish name (e.g. lasagne) or by main ingredient (e.g. salmon).")
 @logged(log)
-def recipe_search(name: str) -> str:
+def recipe_search(name: str | None = None, ingredient: str | None = None) -> str:
+    if ingredient and str(ingredient).strip():
+        if name and str(name).strip():
+            raise ValueError("give either a dish name or an ingredient, not both")
+        return _by_ingredient(ingredient)
     if not str(name or "").strip():
-        raise ValueError("pass a dish name")
+        raise ValueError("pass a dish name or an ingredient")
     ms = _meals("search.php", s=str(name).strip())
     if not ms:
-        return f"No recipes named like {name!r}. Try recipe_by_ingredient or recipe_suggest."
+        return f"No recipes named like {name!r}. Try recipe_search with an ingredient, or recipe_suggest."
     note(*[m["idMeal"] for m in ms[:LIST_MAX]])
     return _list(f"Recipes matching {name!r}: {len(ms)}", ms)
 
 
-@mcp.tool(name="recipe_by_ingredient", description=f"{U} Lists recipes using a main ingredient (e.g. chicken_breast, salmon, chickpeas).")
-@logged(log)
-def recipe_by_ingredient(ingredient: str) -> str:
+def _by_ingredient(ingredient: str) -> str:
     if not str(ingredient or "").strip():
         raise ValueError("pass an ingredient")
     ms = _meals("filter.php", i=str(ingredient).strip().replace(" ", "_"))
@@ -177,7 +178,7 @@ def recipe_by_ingredient(ingredient: str) -> str:
     return _list(f"Recipes with {ingredient}: {len(ms)} (random selection)", ms)
 
 
-@mcp.tool(name="recipe_read", description=f"{U} Reads a recipe's method in short parts. recipe = id or name; part 1, 2, ...")
+@mcp.tool(name="recipe_read", description=f"{U} read a recipe's method in short parts, by id or name.")
 @logged(log)
 def recipe_read(recipe: str, part: int = 1) -> str:
     m = _meal(recipe)
@@ -190,7 +191,7 @@ def recipe_read(recipe: str, part: int = 1) -> str:
     return f"{_brief(m)}. Method part {p} of {len(parts)}:\n{parts[p - 1]}\n{nxt}"
 
 
-@mcp.tool(name="recipe_ingredients", description=f"{U} Returns the shopping list (ingredients with quantities) for a recipe. recipe = id or name.")
+@mcp.tool(name="recipe_ingredients", description=f"{U} the shopping list for a recipe, by id or name.")
 @logged(log)
 def recipe_ingredients(recipe: str) -> str:
     m = _meal(recipe)

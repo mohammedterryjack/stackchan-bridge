@@ -175,23 +175,22 @@ def _random_impl() -> str:
     return f"{head}{_speak(t)} {_ref(b, a, e)}\nNext: rumi_read(book={b}, verse={e + 1})"
 
 
-@mcp.tool()
-def rumi_read(book: int, verse: int | None = None, section: str | None = None) -> str:
-    """Use when the user asks to read Rumi's Mathnawi at a book and verse or a section title. book 1-6; verse number or section phrase. Returns about a page and a Next: hint to continue."""
-    return _run(_read_impl, book, verse, section)
+def _read_or_random(book: int | None, verse: int | None, section: str | None) -> str:
+    if book is None:
+        if verse is not None or section:
+            raise ValueError("give the Mathnawi book (1-6) with the verse or section.")
+        return _random_impl()
+    return _read_impl(book, verse, section)
 
 
-@mcp.tool()
+@mcp.tool(name="rumi_read", description="Rumi's Mathnawi: read a passage by book (1-6) and verse or section title, or a random passage when no book is given ('read me some Rumi').")
+def rumi_read(book: int | None = None, verse: int | None = None, section: str | None = None) -> str:
+    return _run(_read_or_random, book, verse, section)
+
+
+@mcp.tool(name="rumi_search", description="Rumi's Mathnawi: find passages on a theme or phrase, e.g. 'Rumi on love'.")
 def rumi_search(query: str, limit: int = 3) -> str:
-    """Use when the user wants Rumi on a theme, e.g. 'Rumi on love'. limit 1-5. Returns lines ending (Mathnawi book:verse); rumi_read reads on."""
     return _run(_search_impl, query, limit)
-
-
-@mcp.tool()
-def rumi_random() -> str:
-    """Use when the user asks for any Rumi poem, passage or wisdom. Returns one random Mathnawi passage with its reference."""
-    return _run(_random_impl)
-
 
 if __name__ == "__main__":
     mcp.run(transport="stdio", show_banner=False)

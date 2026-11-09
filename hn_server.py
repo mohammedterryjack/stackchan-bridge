@@ -87,7 +87,7 @@ def _fetch_items(ids: list[int]) -> list[dict]:
 
 @mcp.tool()
 def hn_top_stories(story_type: str = "top", num_stories: int = 5) -> str:
-    """Use when the user asks what is on Hacker News (tech and startup links), not general news. story_type: top|new|ask_hn|show_hn (default top). num_stories 1-10 (default 5). Returns lines ending (hn ID); hn_story opens one."""
+    """Hacker News front page (tech and startup links): top, new, ask_hn or show_hn."""
     if not 1 <= num_stories <= MAX_STORIES:
         raise ValueError(f"num_stories must be 1..{MAX_STORIES}")
     key = (story_type or "top").strip().lower()
@@ -105,7 +105,7 @@ def hn_top_stories(story_type: str = "top", num_stories: int = 5) -> str:
 
 @mcp.tool()
 def hn_search(query: str, num_results: int = 5, search_by_date: bool = False) -> str:
-    """Use when the user wants Hacker News stories on a topic, e.g. 'what does Hacker News say about Rust'. num_results 1-10 (default 5). search_by_date: true for newest first. Returns lines ending (hn ID)."""
+    """Hacker News stories on a topic, optionally newest first."""
     q = (query or "").strip()
     if not q:
         raise ValueError("query required")
@@ -162,7 +162,7 @@ def _comment_tree(client: httpx.Client, kids: list[int], depth: int, limit: int)
 
 @mcp.tool()
 def hn_story(story_id: int | str) -> str:
-    """Use to open one Hacker News story and its discussion. story_id from '(hn 12345)'. Returns the story and top 4 comments."""
+    """Open one Hacker News story and its top comments by id."""
     import re as _re
     m = _re.fullmatch(r"\s*(?:hn\s*)?(\d+)\s*", str(story_id), _re.I)
     if not m:
@@ -186,7 +186,7 @@ def hn_story(story_id: int | str) -> str:
 
 @mcp.tool()
 def hn_user(user_name: str, num_stories: int = 5) -> str:
-    """Use when the user asks about a Hacker News user. num_stories 1-10. Returns karma, about and recent stories."""
+    """A Hacker News user's karma and recent stories."""
     if not 1 <= num_stories <= MAX_STORIES:
         raise ValueError(f"num_stories must be 1..{MAX_STORIES}")
     name = (user_name or "").strip()

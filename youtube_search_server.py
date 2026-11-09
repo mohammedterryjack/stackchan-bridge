@@ -32,7 +32,7 @@ def _text(x) -> str:
 
 @mcp.tool()
 def youtube_search(query: str, limit: int = 3) -> str:
-    """Use when the user wants a YouTube video on a topic or from a channel. limit 1-5 (default 3). Returns lines: title, channel, length (video ID) for youtube_info or youtube_transcript."""
+    """Find YouTube videos on a topic or from a channel; ids work with youtube_info and youtube_transcript."""
     q = (query or "").strip()
     if not q:
         raise ValueError("query required")

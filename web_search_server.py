@@ -45,7 +45,7 @@ def _unwrap_ddg(href: str) -> str:
 
 @mcp.tool()
 def web_search(query: str, max_results: int = DEFAULT_RESULTS) -> str:
-    """Use for general questions and facts no other tool covers, e.g. 'search the web for...'. max_results 1-8 (default 5). Returns one line per result: title - snippet (result N); web_read with N reads one."""
+    """Search the web for facts and questions no other tool covers."""
     q = (query or "").strip()
     if not q:
         raise ValueError("query required")
@@ -100,7 +100,7 @@ def web_search(query: str, max_results: int = DEFAULT_RESULTS) -> str:
 
 @mcp.tool()
 def web_read(url: str, max_length: int = DEFAULT_FETCH) -> str:
-    """Use to read a web page, or a web_search result in full. url: result number from the last web_search (e.g. 2), a web address, or a site name like wikipedia.org. Returns the page as plain text."""
+    """Read a web page in full: a web_search result number, a web address or a site name."""
     u = str(url or "").strip()
     m = re.fullmatch(r"(?:result\s*)?(\d{1,2})", u, re.I)
     if m:

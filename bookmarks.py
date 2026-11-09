@@ -90,13 +90,13 @@ BOOKS: dict[str, tuple] = {
 }
 
 TOOL_SPECS = [
-    {"name": "bookmark_continue", "description": "Continue reading a book where we left off: reads the next passage after the saved bookmark (the place is saved automatically whenever a book is read). book: e.g. Quran, Hilya, Ihya, Futuhat, Ghunya, Rumi, Aesop, Gospels, Tanakh, Bahjat, dreams, Sulami, Safwa, Ethiopian, zines; leave empty to continue the most recently read book.",
-     "inputSchema": {"type": "object", "properties": {"book": {"type": "string", "description": "Book name; empty = most recent"}}}},
-    {"name": "bookmark_list", "description": "List the books with a saved bookmark (where we left off reading in each), most recent first.",
+    {"name": "bookmark_continue", "description": "Continue reading a book where we left off ('carry on with the Quran'); no book = the last one read.",
+     "inputSchema": {"type": "object", "properties": {"book": {"type": "string"}}}},
+    {"name": "bookmark_list", "description": "Which books have a bookmark and where we left off in each.",
      "inputSchema": {"type": "object", "properties": {}}},
-    {"name": "bookmark_set", "description": "Move a book's bookmark to a place the user names, so bookmark_continue starts there. book: e.g. Quran; position: e.g. '2:255' (Quran), 'Genesis 3:1' (Tanakh), '1:100' (Rumi), '5 part 2' (Hilya entry 5), 'nawawi 5' (hadith).",
+    {"name": "bookmark_set", "description": "Move a book's bookmark to a place Mo names, e.g. Quran 2:255 or Rumi 1:100.",
      "inputSchema": {"type": "object", "properties": {"book": {"type": "string"}, "position": {"type": "string"}}, "required": ["book", "position"]}},
-    {"name": "bookmark_clear", "description": "Remove a book's bookmark when the user asks to forget it or start over. book: e.g. Quran, or 'all' to clear every bookmark.",
+    {"name": "bookmark_clear", "description": "Forget a book's bookmark, or all of them.",
      "inputSchema": {"type": "object", "properties": {"book": {"type": "string"}}, "required": ["book"]}},
 ]
 PIPE_TOOLS = {t["name"] for t in TOOL_SPECS}

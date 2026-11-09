@@ -178,7 +178,7 @@ def _line(e: dict) -> str:
 
 @mcp.tool()
 def darknet_episodes(query: str = "", limit: int = 3) -> str:
-    """Use when the user asks about Darknet Diaries podcast episodes, the latest or on a topic (e.g. 'xbox', 'ransomware'). query optional. Returns one episode per line with its number."""
+    """Darknet Diaries podcast: list the latest episodes or find them by topic."""
     limit = max(1, min(int(limit), MAX_LIMIT))
     eps = sorted(_feed().values(), key=lambda e: -e["n"])
     q = query.strip().lower()
@@ -195,7 +195,7 @@ def darknet_episodes(query: str = "", limit: int = 3) -> str:
 
 @mcp.tool()
 def darknet_episode(episode: str) -> str:
-    """Use when the user asks what a Darknet Diaries episode is about. episode: number like 140. Returns a short spoken summary."""
+    """Darknet Diaries: a short summary of one episode by number."""
     e = _episode(episode)
     sents = re.split(r"(?<=[.!?])\s+", e["desc"])
     summ = ""
@@ -210,7 +210,7 @@ def darknet_episode(episode: str) -> str:
 
 @mcp.tool()
 def darknet_transcript(episode: str, part: int = 1) -> str:
-    """Use to read a Darknet Diaries episode aloud. episode: number; part 1 = start. Returns a short part; call again with the next part to continue."""
+    """Darknet Diaries: read an episode aloud in parts."""
     n = _ep_num(episode)
     parts = _parts(n)
     part = int(part)
@@ -221,7 +221,7 @@ def darknet_transcript(episode: str, part: int = 1) -> str:
 
 @mcp.tool()
 def darknet_find(episode: str, phrase: str) -> str:
-    """Use to find where a word or phrase comes up in a Darknet Diaries episode. Returns part numbers to read with darknet_transcript."""
+    """Darknet Diaries: find where a word or phrase comes up in an episode."""
     n = _ep_num(episode)
     parts = _parts(n)
     q = phrase.strip().lower()

@@ -57,14 +57,14 @@ BOOKS = {
         "label": "al-Sulami (السلمي), Dhikr al-Niswa al-Muta'abbidat as-Sufiyyat (ذكر النسوة المتعبدات الصوفيات)",
         "prefix": "sulami_women",
         "min": MIN_SULAMI,
-        "A": "al-Sulami (السلمي) Dhikr al-Niswa (ذكر النسوة): use when the user asks about female awliya, Sufi women, pious women, Rabia al-Adawiyya, or al-Sulami's book of female devotees.",
+        "A": "Al-Sulami's Dhikr al-Niswa (early Sufi women)",
     },
     "safwa": {
         "key": "safwa",
         "label": "Ibn al-Jawzi (ابن الجوزي), Sifat al-Safwa (صفة الصفوة) — women biographies",
         "prefix": "safwa_women",
         "min": MIN_SAFWA,
-        "A": "Ibn al-Jawzi (ابن الجوزي) Sifat al-Safwa women (صفة الصفوة، تراجم النساء): use when the user asks about female awliya in Sifat al-Safwa, Ibn al-Jawzi on pious women, or Rabia and other women saints beyond al-Sulami.",
+        "A": "Ibn al-Jawzi's Sifat al-Safwa women (pious women saints)",
     },
 }
 H = "Text is classical Arabic: explain or translate it in the user's language. Replies are short parts for spoken audio; call again with part=N+1 for more."
@@ -250,7 +250,7 @@ def _search_impl(book: str, query: str, limit: int) -> str:
     )
     note(*[r[0] for r in rows])
     if not rows:
-        return f"No passage in {book} contains all of {terms}. Try fewer words or {meta['prefix']}_random()."
+        return f"No passage in {book} contains all of {terms}. Try fewer words or {meta['prefix']}_read()."
     out = []
     for _, n, p, name, nt in rows:
         t = re.sub(r"\s+", " ", nt)
@@ -274,38 +274,22 @@ def _register(book: str) -> None:
     meta = BOOKS[book]
     pref, A = meta["prefix"], meta["A"]
 
+    name = A.split(":")[0]
+
     def people(query: str | None = None, page: int = 1) -> str:
         return _run(_people_impl, book, query, page)
 
-    def read(person: str, part: int = 1) -> str:
-        return _run(_read_impl, book, person, part, True)
+    def read(person: str | None = None, part: int = 1) -> str:
+        return _run(_random_impl, book) if not person else _run(_read_impl, book, person, part, True)
 
     def search(query: str, limit: int = 3) -> str:
         return _run(_search_impl, book, query, limit)
 
-    def random_() -> str:
-        return _run(_random_impl, book)
-
-    people.__name__ = f"{pref}_people"
-    read.__name__ = f"{pref}_read"
-    search.__name__ = f"{pref}_search"
-    random_.__name__ = f"{pref}_random"
-    mcp.tool(
-        name=f"{pref}_people",
-        description=f"{A} Lists the women biographies in book order. Optional query filters names (Arabic, or famous names like Rabia, Fatima, Aisha); page (40 per page). Returns entry numbers for {pref}_read. {H}",
-    )(logged(log)(people))
-    mcp.tool(
-        name=f"{pref}_read",
-        description=f"{A} Reads one woman's biography. person: entry number from {pref}_people/{pref}_search, or a name (Arabic or famous English, e.g. 'Rabia'); part 1.. (about 800 characters each for spoken audio). Returns the text and a Next: call. {H}",
-    )(logged(log)(read))
-    mcp.tool(
-        name=f"{pref}_search",
-        description=f"{A} Full-text search of the women's biographies (zuhd, love, weeping, prayer, Rabia, etc.). query: Arabic keywords, common English topic words, or famous names; all must match. limit 1-5. Returns snippets with the {pref}_read call. {H}",
-    )(logged(log)(search))
-    mcp.tool(
-        name=f"{pref}_random",
-        description=f"{A} Use for a random passage from a female awliya biography. Returns one short part with a Next: call. {H}",
-    )(logged(log)(random_))
+    for fn, desc in [(people, f"{name}: list the women saints, optionally filtered by name, e.g. Rabia."),
+                     (read, f"{name} (Arabic; translate when speaking): read a woman saint's biography by entry number or name, in parts, or a random passage with no person."),
+                     (search, f"{name}: find passages about a topic or a woman saint (Arabic or English words).")]:
+        fn.__name__ = f"{pref}_{fn.__name__}"
+        mcp.tool(name=fn.__name__, description=desc)(logged(log)(fn))
 
 
 for _bk in BOOKS:

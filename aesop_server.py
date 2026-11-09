@@ -155,23 +155,18 @@ def _random_impl() -> str:
     return _fmt(_q("SELECT id, title, text, moral FROM aesop USING SAMPLE 1", [])[0])
 
 
-@mcp.tool()
+def _read_or_random(fable_id: int | None, title: str | None) -> str:
+    return _random_impl() if fable_id is None and not title else _read_impl(fable_id, title)
+
+
+@mcp.tool(name="aesop_read", description="Aesop's fables: tell a fable by number or title, or a random one with no arguments (bedtime story, a story with a moral).")
 def aesop_read(fable_id: int | None = None, title: str | None = None) -> str:
-    """Use when the user asks for a specific Aesop fable, e.g. 'tell me the tortoise and the hare'. fable_id from '(fable N)', or title: part of the title. Returns the whole fable and its moral."""
-    return _run(_read_impl, fable_id, title)
+    return _run(_read_or_random, fable_id, title)
 
 
-@mcp.tool()
+@mcp.tool(name="aesop_search", description="Aesop's fables: find fables about an animal, theme or lesson, e.g. 'a fable about greed'.")
 def aesop_search(query: str, limit: int = 3) -> str:
-    """Use when the user wants an Aesop fable about an animal, theme or lesson, e.g. 'a fable about greed'. limit 1-5. Returns titles with snippets and (fable N) ids for aesop_read."""
     return _run(_search_impl, query, limit)
-
-
-@mcp.tool()
-def aesop_random() -> str:
-    """Use when the user asks for any fable, a bedtime story or a story with a moral. Returns one random Aesop fable and its moral."""
-    return _run(_random_impl)
-
 
 if __name__ == "__main__":
     mcp.run(transport="stdio", show_banner=False)

@@ -353,6 +353,33 @@ def _speakable_validation(text: str) -> str | None:
     return "Error: " + ("; ".join(out) or "wrong arguments") + "."
 
 
+def _slim_schema(node):
+    """Shrink a tool input schema for Xiaozhi's token-capped tool list: drop titles and null defaults, and turn
+    Optional (anyOf X|null) into plain X. Types, enums, required lists and real defaults are kept."""
+    if isinstance(node, list):
+        return [_slim_schema(n) for n in node]
+    if not isinstance(node, dict):
+        return node
+    out = {}
+    for k, v in node.items():
+        if k == "title" and isinstance(v, str):
+            continue
+        if k == "default" and v is None:
+            continue
+        out[k] = _slim_schema(v) if k in ("properties", "items", "anyOf", "$defs", "additionalProperties") or isinstance(v, (dict, list)) and k not in ("enum", "required", "default", "examples") else v
+    if "properties" in out and isinstance(out["properties"], dict):
+        out["properties"] = {name: _slim_schema(p) for name, p in node["properties"].items()}
+    alts = out.get("anyOf")
+    if isinstance(alts, list):
+        non_null = [a for a in alts if not (isinstance(a, dict) and a.get("type") == "null")]
+        if len(non_null) == 1 and len(non_null) < len(alts):
+            merged = {**{k: v for k, v in out.items() if k != "anyOf"}, **non_null[0]}
+            return merged
+    if out.get("additionalProperties") is False and "properties" in out:
+        out.pop("additionalProperties")
+    return out
+
+
 def _slim_payload(payload: str) -> str:
     """Drop structuredContent (duplicate of text content) and tool outputSchema to keep Xiaozhi frames small."""
     try:
@@ -374,8 +401,13 @@ def _slim_payload(payload: str) -> str:
                 if short:
                     c["text"] = short; changed = True
     for t in res.get("tools") or []:
-        if isinstance(t, dict) and "outputSchema" in t:
-            t.pop("outputSchema"); changed = True
+        if isinstance(t, dict):
+            t.pop("outputSchema", None)
+            t.pop("annotations", None)
+            t.pop("_meta", None)
+            if isinstance(t.get("inputSchema"), dict):
+                t["inputSchema"] = _slim_schema(t["inputSchema"])
+            changed = True
     return json.dumps(msg, ensure_ascii=False) if changed else payload
 
 
@@ -442,8 +474,8 @@ def cap_reply(payload: str, tool: str) -> str:
     return json.dumps(msg, ensure_ascii=False)
 
 
-MORE_SPEC = {"name": MORE_TOOL, "description": "Continue a long reply: use when the user wants more of the last text (tool replies are split into short parts, each ending with 'Part N of M'). part: the part number to read, e.g. 2.",
-             "inputSchema": {"type": "object", "properties": {"part": {"type": "integer", "description": "Part number, 2 or more"}}, "required": ["part"]}}
+MORE_SPEC = {"name": MORE_TOOL, "description": "Read more of the last long reply ('Part N of M'): part = the next part number.",
+             "inputSchema": {"type": "object", "properties": {"part": {"type": "integer"}}, "required": ["part"]}}
 
 
 def more_text_response(msg: dict) -> str:

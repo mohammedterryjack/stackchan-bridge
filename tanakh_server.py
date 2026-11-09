@@ -88,7 +88,7 @@ def _render(c: dict, start: int, end: int) -> str:
 
 @mcp.tool()
 def tanakh_verse(book: str, chapter: int, verse: str = "1") -> str:
-    """Use when the user asks for a Torah, Tanakh or Hebrew Bible verse, e.g. 'Genesis 1:1'. book: e.g. Genesis, Psalms, Isaiah. verse: '1' or a range '1-5' (max 8). Returns English verses ending (Genesis 1:1)."""
+    """Torah / Hebrew Bible: a verse or range by book and chapter, e.g. Genesis 1:1-5."""
     m = re.fullmatch(r"\s*(\d{1,3})\s*(?:-\s*(\d{1,3}))?\s*", str(verse))
     if not m:
         raise ValueError("verse must be a number like 3 or a range like 1-5")
@@ -101,13 +101,13 @@ def tanakh_verse(book: str, chapter: int, verse: str = "1") -> str:
 
 @mcp.tool()
 def tanakh_chapter(book: str, chapter: int, start: int = 1) -> str:
-    """Use to read a whole Torah or Tanakh chapter aloud, a few verses at a time. start: verse to begin from (default 1). Returns verses and a Next verse; call again with it to continue."""
+    """Torah / Hebrew Bible: read a chapter aloud a few verses at a time."""
     return _render(_chapter(book, chapter), int(start), int(start) + MAX_VERSES - 1)
 
 
 @mcp.tool()
 def tanakh_search(query: str, limit: int = 3) -> str:
-    """Use when the user asks what the Torah or Hebrew Bible says about a topic, e.g. 'love your neighbor'. limit 1-5 (default 3). Returns one verse per line ending (Book c:v); tanakh_verse reads more."""
+    """Torah / Hebrew Bible: find verses about a topic."""
     q = (query or "").strip()
     if not q:
         raise ValueError("query required")

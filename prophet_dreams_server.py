@@ -1,5 +1,5 @@
 """Prophet dreams MCP: accounts of people who saw the Prophet (saas) in a dream, original Arabic, from
-hf://datasets/MTerryJack/prophet-dreams (DuckDB, in memory). dream_number is per source; dreams_sources lists them.
+hf://datasets/MTerryJack/prophet-dreams (DuckDB, in memory). dream_number is per source; dreams_search with no query lists them.
 Every call logs one line to stderr (tool, args, row ids, ms, error) via mcp_tool_log; a failed dataset load exits at startup."""
 
 from __future__ import annotations
@@ -150,7 +150,7 @@ def _resolve(source: str | None) -> str | None:
     known = [r[0] for r in _q("SELECT DISTINCT source FROM dreams ORDER BY 1", [])]
     hit = [src for src in known if k and any(k in _key(n) for n in [src, *ALIASES[src]])]
     if not hit:
-        raise LookupError(f"Unknown source {s!r}. Valid sources (any part of the name works): {'; '.join(known)}. See dreams_sources().")
+        raise LookupError(f"Unknown source {s!r}. Valid sources (any part of the name works): {'; '.join(known)}. See dreams_search().")
     if len(hit) > 1:
         raise LookupError(f"Source {s!r} matches several: {'; '.join(hit)}. Use more of the name.")
     return hit[0]
@@ -169,7 +169,7 @@ def _read_impl(dream_number: int, part: int, source: str | None, mark: bool = Fa
     src = _resolve(source) or DEFAULT_SOURCE
     lo, last = _q("SELECT min(dream_number), max(CAST(split_part(covers, '-', -1) AS INT)) FROM dreams WHERE source = ?", [src])[0]
     if not lo <= n <= last:
-        raise ValueError(f"dream_number {n} is out of range: {src} has dreams {lo} to {last}. See dreams_sources() for other sources.")
+        raise ValueError(f"dream_number {n} is out of range: {src} has dreams {lo} to {last}. See dreams_search() for other sources.")
     rid, dn, cov, topic, ref, txt = _q("SELECT id, dream_number, covers, topic, ref_ar, text_ar FROM dreams WHERE source = ? AND dream_number <= ? ORDER BY dream_number DESC LIMIT 1", [src, n])[0]
     note(rid)
     txt = _speak(txt)
@@ -180,7 +180,7 @@ def _read_impl(dream_number: int, part: int, source: str | None, mark: bool = Fa
     head = f"Topic: {topic}. " if topic and p == 1 else ""
     end = int(cov.split("-")[-1])
     nxt = (f"\nNext: dreams_read(dream_number={dn}, part={p + 1}{_arg(src)})" if p < pages
-           else f"\nNext: dreams_read(dream_number={end + 1}{_arg(src)})" if end < last else "\nEnd of this source. Others: dreams_sources().")
+           else f"\nNext: dreams_read(dream_number={end + 1}{_arg(src)})" if end < last else "\nEnd of this source. Others: dreams_search().")
     if mark:
         bookmarks.record("dreams", f"{_short(src)}, dream {cov}, part {p} of {pages}",
                          {"dream_number": dn, "part": p + 1, "source": _short(src)} if p < pages else ({"dream_number": end + 1, "source": _short(src)} if end < last else None))
@@ -215,7 +215,7 @@ def _search_impl(query: str, limit: int, source: str | None) -> str:
     note(*[r[0] for r in rows])
     scope = f" in {_short(src)}" if src else ""
     if not rows:
-        return f"No dreams{scope} contain all of {terms} (searched as {phrase!r}). Try fewer or other Arabic words, or dreams_random()."
+        return f"No dreams{scope} contain all of {terms} (searched as {phrase!r}). Try fewer or other Arabic words, or dreams_read()."
     out = [f"{_snippet(t, phrase if phrase in t else terms[0])} {_ref(s, c)} -> dreams_read(dream_number={d}{_arg(s)})" for _, s, d, c, t in rows]
     return f"{NOTE}\nSearched{scope} for {phrase!r}:\n" + "\n".join(out)
 
@@ -233,33 +233,23 @@ def _sources_impl() -> str:
     return f"{sum(r[2] for r in rows)} dreams of the Prophet (saas) seen by others, original Arabic. Default source when none is given: {_short(DEFAULT_SOURCE)}.\n" + "\n".join(out)
 
 
-@mcp.tool()
+SRC = "Sources: al-Mara'i al-Hisan (default), Sa'adat al-Darayn, al-Manamat, al-Mustaghithin."
+
+
+def _read_or_random(dream_number: int | None, part: int, source: str | None) -> str:
+    return _random_impl(source) if dream_number is None else _read_impl(dream_number, part, source, True)
+
+
+@mcp.tool(name="dreams_read", description=f"Dreams in which people saw the Prophet (saas), Arabic; translate when speaking: read a dream by number in parts, or a random dream with no number. {SRC}")
 @logged(log)
-def dreams_read(dream_number: int, part: int = 1, source: str | None = None) -> str:
-    """Use when the user wants to hear a specific dream in which someone saw the Prophet (saas), e.g. "read dream 12", "the next one", or a dream_number from dreams_search. dream_number counts within one source (ranges: dreams_sources). part pages long dreams (1, 2, ...). Text is classical Arabic: translate or explain it when speaking. Returns one part plus a Next: call to continue. Sources (source= takes any part of the name, English or Arabic): al-Mara'i al-Hisan (Ibn Abi Jamrah, default), Sa'adat al-Darayn (Nabhani), al-Manamat (Ibn Abi al-Dunya), al-Mustaghithin (Ibn Bashkuwal)."""
-    return _run(_read_impl, dream_number, part, source, True)
+def dreams_read(dream_number: int | None = None, part: int = 1, source: str | None = None) -> str:
+    return _run(_read_or_random, dream_number, part, source)
 
 
-@mcp.tool()
+@mcp.tool(name="dreams_search", description="Dreams of the Prophet (saas): find dreams about a topic or person (Arabic or English words); with no query, list the sources and their dream counts.")
 @logged(log)
-def dreams_search(query: str, limit: int = 3, source: str | None = None) -> str:
-    """Use when the user asks for dreams of the Prophet (saas) about something, e.g. "a dream where the Prophet spoke about Abu Bakr", "someone saw the Prophet and was cured", "dreams about Hajj". query: Arabic keywords (الحج, جبريل, الحسين) or common English topic words (hajj, gabriel, husayn, grave, illness, quran); all words must match. limit 1-5. Returns snippets, each with the dreams_read call that opens it. Sources (source= takes any part of the name, English or Arabic): al-Mara'i al-Hisan (Ibn Abi Jamrah, default), Sa'adat al-Darayn (Nabhani), al-Manamat (Ibn Abi al-Dunya), al-Mustaghithin (Ibn Bashkuwal)."""
-    return _run(_search_impl, query, limit, source)
-
-
-@mcp.tool()
-@logged(log)
-def dreams_random(source: str | None = None) -> str:
-    """Use when the user asks for any dream of the Prophet (saas), e.g. "tell me a dream someone had of the Prophet", "someone dreamt of the Prophet", "a vision of the Prophet in sleep". Optional source. Text is classical Arabic: translate or explain it. Returns one dream with its reference and a Next: call. Sources (source= takes any part of the name, English or Arabic): al-Mara'i al-Hisan (Ibn Abi Jamrah, default), Sa'adat al-Darayn (Nabhani), al-Manamat (Ibn Abi al-Dunya), al-Mustaghithin (Ibn Bashkuwal)."""
-    return _run(_random_impl, source)
-
-
-@mcp.tool()
-@logged(log)
-def dreams_sources() -> str:
-    """Use when the user asks which books the Prophet dreams come from, how many there are, or before reading by number from a source. Returns each source with its Arabic title, count, dream_number range and licence."""
-    return _run(_sources_impl)
-
+def dreams_search(query: str | None = None, limit: int = 3, source: str | None = None) -> str:
+    return _run(_sources_impl) if not (query or "").strip() else _run(_search_impl, query, limit, source)
 
 if __name__ == "__main__":
     try:

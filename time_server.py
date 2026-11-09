@@ -31,7 +31,7 @@ def _tz(name: str | None) -> ZoneInfo:
 
 @mcp.tool()
 def time_now(timezone: str) -> str:
-    """Use when the user asks what time it is somewhere. timezone: required city or IANA name, e.g. Tokyo or Asia/Tokyo; if the user did not say where, ask which city first. Returns the local time. Not for calendars."""
+    """The current time in a city or timezone; ask which city if Mo didn't say."""
     z = _tz(timezone)
     now = datetime.now(z)
     return f"{now.strftime('%A %d %B %Y, %H:%M')} ({z.key})"
@@ -43,7 +43,7 @@ def time_convert(
     source_timezone: str,
     target_timezone: str,
 ) -> str:
-    """Use when the user asks what a time in one place is in another, e.g. '3pm London in Tokyo'. time: like 15:00 or 3pm. source_timezone and target_timezone: required city or IANA names; ask if one is missing. Returns the converted time. Today only."""
+    """Convert a time (e.g. 3pm) from one city or timezone to another, today."""
     src = _tz(source_timezone)
     tgt = _tz(target_timezone)
     m = re.fullmatch(r"\s*(\d{1,2})(?:[:.](\d{2}))?\s*([ap]\.?m\.?)?\s*", time.lower())

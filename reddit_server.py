@@ -156,7 +156,7 @@ def reddit_posts(
     sort: str = "hot",
     limit: int = 5,
 ) -> str:
-    """Use when the user asks what is on Reddit or in a subreddit. subreddit optional (omit for front page). sort: hot|new|top|rising. limit 1-10 (default 5). Returns lines ending (post ID); reddit_post opens one."""
+    """Reddit posts: the front page or a subreddit, sorted hot, new, top or rising."""
     limit = _clamp(limit, "limit")
     s = (sort or "hot").strip().lower()
     if s not in SORT_MAP:
@@ -189,7 +189,7 @@ def _short(t: str, n: int) -> str:
 
 @mcp.tool()
 def reddit_post(post_id: str) -> str:
-    """Use to open one Reddit post. post_id from '(post 1abc23)'. Returns the post and top comments."""
+    """Open one Reddit post and its top comments by id."""
     pid = re.sub(r"^(post|t3_)\s*", "", (post_id or "").strip(), flags=re.I).strip()
     pid = pid.removeprefix("t3_")
     if not re.fullmatch(r"[a-z0-9]{4,10}", pid, re.I):

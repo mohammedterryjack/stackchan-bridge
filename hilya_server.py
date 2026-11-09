@@ -1,6 +1,6 @@
 """Hilyat al-Awliya MCP: Abu Nu'aym al-Isfahani's Hilyat al-Awliya wa Tabaqat al-Asfiya, original Arabic, from
 hf://datasets/MTerryJack/hilyat-al-awliya (OpenITI-derived, CC BY-NC-SA 4.0; DuckDB in memory, no downloads kept).
-Tools: hilya_people, hilya_read, hilya_search, hilya_random. Each call logs one stderr line via mcp_tool_log;
+Tools: hilya_people, hilya_read, hilya_search. Each call logs one stderr line via mcp_tool_log;
 a failed dataset load exits at startup."""
 
 from __future__ import annotations
@@ -199,7 +199,7 @@ def _search_impl(query: str, limit: int) -> str:
     rows = _q(f"SELECT id, number, part, name_ar, nt FROM t WHERE {where} ORDER BY ({score}) DESC, number, part LIMIT ?", terms + pats + [int(limit)])
     note(*[r[0] for r in rows])
     if not rows:
-        return f"No passage in the Hilya contains all of {terms}. Try fewer or other words, hilya_people(), or hilya_random()."
+        return f"No passage in the Hilya contains all of {terms}. Try fewer or other words, hilya_people(), or hilya_read()."
     out = []
     for _, n, p, name, nt in rows:
         t = re.sub(r"\s+", " ", nt)
@@ -213,33 +213,29 @@ def _random_impl() -> str:
     return _read_impl(str(n), p)
 
 
-A = "Abu Nu'aym (أبو نعيم) Hilyat al-Awliya (حلية الأولياء): use when the user mentions Hilyat al-Awliya, the Hilya, Abu Nu'aym, or asks about early saints, sahaba, tabi'in, zuhhad (ascetics) or early Sufis and their sayings."
-H = "Text is classical Arabic: explain or translate it in the user's language."
+A = "Abu Nu'aym's Hilyat al-Awliya (early saints and ascetics, Arabic text; translate when speaking):"
 
 
-@mcp.tool(name="hilya_people", description=f"{A} Lists the biographies (tarajim, about 670 people in book order: sahaba, ahl al-suffa, tabi'in, later ascetics up to al-Junayd's era). Optional query filters names (Arabic, or famous names like Hasan al-Basri, Ibrahim ibn Adham, Fudayl, Bishr al-Hafi, Junayd); page (40 per page). Returns entry numbers for hilya_read. {H}")
+def _read_or_random(person: str | None, part: int) -> str:
+    return _random_impl() if not person else _read_impl(person, part, True)
+
+
+@mcp.tool(name="hilya_people", description=f"{A} list the people (about 670), optionally filtered by name, e.g. Hasan al-Basri.")
 @logged(log)
 def hilya_people(query: str | None = None, page: int = 1) -> str:
     return _run(_people_impl, query, page)
 
 
-@mcp.tool(name="hilya_read", description=f"{A} Reads one person's biography and sayings. person: entry number from hilya_people/hilya_search, or a name (Arabic or famous English name, e.g. 'Hasan al-Basri', 'Sufyan al-Thawri'); part 1.. (about 2000 characters each). Returns the text and a Next: call. {H}")
+@mcp.tool(name="hilya_read", description=f"{A} read a person's biography and sayings by entry number or name, in parts, or a random passage with no person.")
 @logged(log)
-def hilya_read(person: str, part: int = 1) -> str:
-    return _run(_read_impl, person, part, True)
+def hilya_read(person: str | None = None, part: int = 1) -> str:
+    return _run(_read_or_random, person, part)
 
 
-@mcp.tool(name="hilya_search", description=f"{A} Full-text search, e.g. what the early saints said about a topic (zuhd, patience, fear, weeping, the world, repentance, night prayer) or passages mentioning a person. query: Arabic keywords, common English topic words, or famous names (mapped to Arabic); all must match. limit 1-5. Returns snippets with the hilya_read call to open each. {H}")
+@mcp.tool(name="hilya_search", description=f"{A} find what the early saints said about a topic (zuhd, patience, repentance) or passages about a person.")
 @logged(log)
 def hilya_search(query: str, limit: int = 3) -> str:
     return _run(_search_impl, query, limit)
-
-
-@mcp.tool(name="hilya_random", description=f"{A} Use for a random passage, story or wisdom of the early saints from the Hilya. Returns one passage with its person and a Next: call. {H}")
-@logged(log)
-def hilya_random() -> str:
-    return _run(_random_impl)
-
 
 if __name__ == "__main__":
     try:

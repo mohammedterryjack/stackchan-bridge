@@ -102,11 +102,25 @@ def _source_items(name: str, url: str) -> list[dict]:
     return out
 
 
-@mcp.tool()
-def news_headlines(topic: str | None = None, limit: int = 5) -> str:
-    """Use when the user asks for the news, headlines or what is happening in the world or on a topic. topic: optional search term (Google News); omit for top world headlines from Al Jazeera, DW, Real News and Reuters. limit 1-10 (default 5). Returns one headline per line."""
+def _source_feed(source: str) -> tuple[str, str]:
+    key = source.strip().lower()
+    if key.startswith("simon"):
+        return "Simon Willison's Weblog", SIMON_FEED
+    for k, (title, url) in SECURITY_FEEDS.items():
+        if key == title.lower() or key.startswith(k):
+            return title, url
+    raise ValueError(f"source must be one of: simon willison, {', '.join(SECURITY_FEEDS)}")
+
+
+@mcp.tool(name="news_headlines", description="News headlines: top world news, a topic search, or one source (simon willison for AI blog posts; krebs, schneier, lwn or 2600 for security news).")
+def news_headlines(topic: str | None = None, source: str | None = None, limit: int = 5) -> str:
     _check_limit(limit)
     topic = (topic or "").strip()
+    if source and source.strip():
+        if topic:
+            raise ValueError("give either topic or source, not both")
+        name, url = _source_feed(source)
+        return _format(name, _entries(_fetch(url)), limit, summary=True)
     if topic:
         items = _entries(_fetch(GOOGLE_SEARCH.format(q=urllib.parse.quote(topic))))
         # Google News descriptions just repeat the title
@@ -114,28 +128,6 @@ def news_headlines(topic: str | None = None, limit: int = 5) -> str:
     feeds = [[dict(it, title=f"{name}: {it['title']}") for it in _source_items(name, url)] for name, url in TOP_FEEDS]
     mixed = [it for group in zip(*feeds) for it in group]
     return _format("Top headlines from Al Jazeera, DW, Real News and Reuters", mixed, limit, summary=True)
-
-
-@mcp.tool()
-def news_simon_willison(limit: int = 5) -> str:
-    """Use when the user asks about Simon Willison or his blog (AI and coding). limit 1-10 (default 5). Returns his latest posts, one per line."""
-    _check_limit(limit)
-    return _format("Simon Willison's Weblog", _entries(_fetch(SIMON_FEED)), limit, summary=True)
-
-
-@mcp.tool()
-def news_security(source: str, limit: int = 5) -> str:
-    """Use when the user asks for cybersecurity or hacking news. source: krebs|schneier|lwn|2600. limit 1-10 (default 5). Returns one headline per line."""
-    _check_limit(limit)
-    key = source.strip().lower()
-    for k, (title, _u) in SECURITY_FEEDS.items():
-        if key == title.lower() or key.startswith(k):
-            key = k
-            break
-    if key not in SECURITY_FEEDS:
-        raise ValueError(f"source must be one of: {', '.join(SECURITY_FEEDS)}")
-    name, url = SECURITY_FEEDS[key]
-    return _format(name, _entries(_fetch(url)), limit, summary=True)
 
 
 if __name__ == "__main__":

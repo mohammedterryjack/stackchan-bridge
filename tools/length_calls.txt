@@ -1,18 +1,18 @@
 zines|zine_read|{"id":"1"}
 news|news_headlines|{"limit":5}
-news|news_security|{"limit":5}
+news|news_headlines|{"source":"schneier","limit":5}
 web-search|web_search|{"query":"islamic history","max_results":5}
 web-search|web_read|{"url":"https://en.wikipedia.org/wiki/Stack-chan"}
 web-search|web_read|{"url":"https://en.wikipedia.org/wiki/Rumi"}
 quran-hadith|quran_read|{"surah":"2","ayah":"255","count":5}
 quran-hadith|quran_search|{"query":"mercy","limit":5}
-quran-hadith|hadith_random|{}
+quran-hadith|hadith_get|{}
 quran-hadith|hadith_get|{"collection":"bukhari","number":"1"}
 tanakh|tanakh_chapter|{"book":"Genesis","chapter":1}
 tanakh|tanakh_search|{"query":"light","limit":5}
-rumi|rumi_random|{}
+rumi|rumi_read|{}
 rumi|rumi_search|{"query":"love","limit":5}
-aesop|aesop_random|{}
+aesop|aesop_read|{}
 darknet-diaries|darknet_transcript|{"episode":"1","part":1}
 hackernews|hn_top_stories|{"num_stories":5}
 reddit|reddit_posts|{"subreddit":"python","limit":5}

@@ -168,7 +168,7 @@ def _search_impl(pfx: str, query: str, limit: int) -> str:
               [bk] + terms + pats + [int(limit)])
     note(*[r[0] for r in rows])
     if not rows:
-        return f"No passage in {label} contains all of {terms}. Try fewer or other words, or {pfx}_random()."
+        return f"No passage in {label} contains all of {terms}. Try fewer or other words, or {pfx}_read()."
     out = []
     for _, c, p, title, nt in rows:
         t = re.sub(r"\s+", " ", nt)
@@ -191,22 +191,19 @@ def _register(pfx: str) -> None:
     def contents(page: int = 1, query: str | None = None) -> str:
         return _run(_contents_impl, pfx, page, query)
 
-    def read(chapter: int, part: int = 1) -> str:
-        return _run(_read_impl, pfx, chapter, part, True)
+    def read(chapter: int | None = None, part: int = 1) -> str:
+        return _run(_random_impl, pfx) if chapter is None else _run(_read_impl, pfx, chapter, part, True)
 
     def search(query: str, limit: int = 3) -> str:
         return _run(_search_impl, pfx, query, limit)
 
-    def random() -> str:
-        return _run(_random_impl, pfx)
-
+    book = label.split(", ", 1)[1].split(" (")[0]
     docs = {
-        "contents": f"{author}: use when the user asks what is in {label.split(', ', 1)[1]}, its chapters or books, or to find a chapter by title. page (30 per page); optional query filters titles (Arabic or English topic words). Returns chapter numbers for {pfx}_read. {hint}",
-        "read": f"{author}: use when the user asks to read or continue a chapter of {label.split(', ', 1)[1]}. chapter number from {pfx}_contents or {pfx}_search; part 1.. (about 2000 characters each). Returns the text and a Next: call. {hint}",
-        "search": f"{author}: use when the user asks what {author.split(' (')[0]} says about a topic (e.g. {TOPICS[bk]}). query: Arabic keywords or common English topic words; all must match. limit 1-5. Returns snippets with the {pfx}_read call to open each. {hint}",
-        "random": f"{author}: use when the user mentions {author.split(' (')[0]} or asks for a random passage, wisdom or reading from {label.split(', ', 1)[1]}. Returns one passage with its chapter and a Next: call. {hint}",
+        "contents": f"{author.split(' (')[0]}'s {book}: list chapters, optionally filtered by title words.",
+        "read": f"{author.split(' (')[0]}'s {book} (Arabic; translate when speaking): read a chapter in parts, or a random passage with no chapter.",
+        "search": f"{author.split(' (')[0]}'s {book}: find what he says about a topic (Arabic or English words).",
     }
-    for name, fn in [("contents", contents), ("read", read), ("search", search), ("random", random)]:
+    for name, fn in [("contents", contents), ("read", read), ("search", search)]:
         fn.__name__ = f"{pfx}_{name}"
         mcp.tool(name=fn.__name__, description=docs[name])(logged(log)(fn))
 

@@ -1,5 +1,5 @@
 """Shared verse-corpus MCP builder for gospel_server.py and ethiopian_server.py: one row per verse from a Hugging Face
-parquet (DuckDB in memory). Tools: {pfx}_books, {pfx}_read, {pfx}_search, {pfx}_random. Each call logs one stderr line via
+parquet (DuckDB in memory). Tools: {pfx}_read (no chapter = random verse), {pfx}_search (no query = list books). Each call logs one stderr line via
 mcp_tool_log; a failed dataset load exits at startup (no fallback)."""
 
 from __future__ import annotations
@@ -97,7 +97,8 @@ class Corpus:
 
     def books_impl(self) -> str:
         out = [f"{b} ({ch} ch, {n} v)" for _, b, n, ch in self.order]
-        return f"{len(out)} books: " + "; ".join(out) + f". Read with {self.pfx}_read(book, chapter)."
+        note = f" {self.note}" if getattr(self, "note", "") else ""
+        return f"{len(out)} books: " + "; ".join(out) + f". Read with {self.pfx}_read(book, chapter).{note}"
 
     def read_impl(self, book: str, chapter: int, verse_start: int | None, verse_end: int | None) -> str:
         bk, name = self.book(book)
@@ -144,7 +145,7 @@ class Corpus:
         rows = self.q(f"SELECT id, book, chapter, verse, text FROM t WHERE {where}{f} ORDER BY contains(lt, ?) DESC, id LIMIT ?", pats + fp + [phrase, int(limit)])
         total = self.q(f"SELECT count(*) FROM t WHERE {where}{f}", pats + fp)[0][0]
         if not rows:
-            return f"No verse in {scope} has all of: {', '.join(words)}. Try fewer words or {self.pfx}_random()."
+            return f"No verse in {scope} has all of: {', '.join(words)}. Try fewer words or {self.pfx}_read()."
         note(*[r[0] for r in rows])
         out = [f"{b} {c}:{v}: {t[:200]}" for _, b, c, v, t in rows]
         return f"{total} verses match in {scope}; top {len(rows)}: " + " | ".join(out) + f". Next: {self.pfx}_read(book, chapter, verse) for context."
@@ -156,22 +157,24 @@ class Corpus:
             f, fp = " AND book_key = ?", [bk]
         rid, b, c, v, t, lg = self.q(f"SELECT id, book, chapter, verse, text, lang FROM t WHERE length(text) > 60{f} ORDER BY random() LIMIT 1", fp)[0]
         note(rid)
-        return f"{t} ({b} {c}:{v}).{_lang_note(lg)} Next: {self.pfx}_read('{b}', {c}, {v + 1}) or {self.pfx}_random()."
+        return f"{t} ({b} {c}:{v}).{_lang_note(lg)} Next: {self.pfx}_read('{b}', {c}, {v + 1}) or {self.pfx}_read()."
 
     def register(self, mcp: FastMCP, docs: dict[str, str]) -> None:
-        def books() -> str:
-            return self.run(self.books_impl)
-
-        def read(book: str, chapter: int, verse_start: int | None = None, verse_end: int | None = None) -> str:
+        def read(book: str | None = None, chapter: int | None = None, verse_start: int | None = None, verse_end: int | None = None) -> str:
+            if chapter is None:
+                if verse_start is not None or verse_end is not None:
+                    raise ValueError("give the chapter with the verses")
+                return self.run(self.random_impl, book)
+            if not book:
+                raise ValueError(f"give the book with the chapter; books: {self.books_impl()}")
             return self.run(self.read_impl, book, chapter, verse_start, verse_end)
 
-        def search(query: str, book: str | None = None, limit: int = 3) -> str:
+        def search(query: str | None = None, book: str | None = None, limit: int = 3) -> str:
+            if not (query or "").strip():
+                return self.run(self.books_impl)
             return self.run(self.search_impl, query, book, limit)
 
-        def random(book: str | None = None) -> str:
-            return self.run(self.random_impl, book)
-
-        for n, fn in [("books", books), ("read", read), ("search", search), ("random", random)]:
+        for n, fn in [("read", read), ("search", search)]:
             fn.__name__ = f"{self.pfx}_{n}"
             mcp.tool(name=fn.__name__, description=docs[n])(logged(self.log)(fn))
 

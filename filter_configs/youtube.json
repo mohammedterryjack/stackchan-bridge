@@ -16,15 +16,15 @@
     }
   },
   "descriptions": {
-    "get_transcript": "Use when the user asks what a YouTube video says or wants it summarised. video: ID from '(video X)' or a URL. Returns the spoken text, about 1200 characters per page; if it ends 'more: next_cursor X', call again with next_cursor X.",
-    "get_video_info": "Use for quick facts about one YouTube video. video: ID from '(video X)' or a URL. Returns title, channel, length and year."
+    "get_transcript": "What a YouTube video says, in pages; pass next_cursor to continue.",
+    "get_video_info": "Title, channel, length and year of a YouTube video."
   },
   "param_desc": {
     "get_transcript": {
-      "video": "Video ID like dQw4w9WgXcQ, or a URL."
+      "video": "Video id or URL."
     },
     "get_video_info": {
-      "video": "Video ID like dQw4w9WgXcQ, or a URL."
+      "video": "Video id or URL."
     }
   },
   "youtube_id_args": {
