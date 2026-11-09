@@ -7,11 +7,50 @@ services:
     env_file: .env
     read_only: true
     tmpfs: ["/tmp", "/home/bridge:uid=1000,gid=1000"]
+    environment:
+      HINDSIGHT_URL: http://hindsight:8888
+      MEMORY_BANK: mo
     volumes:
       - bookmarks:/data/bookmarks
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     networks: [stackchan]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Live-learning memory (Hindsight). Embeddings + reranker are baked into the image;
+  # the LLM is Mo's native Metal Ollama on the host, sharing the qwen2.5-coder:7b
+  # that is already resident (num_ctx 8192 matches it, so nothing gets evicted or reloaded). Memories live in the named volume.
+  hindsight:
+    image: ghcr.io/vectorize-io/hindsight:1.2.0
+    container_name: stackchan-hindsight
+    restart: unless-stopped
+    shm_size: 1g
+    stop_grace_period: 75s
+    environment:
+      HINDSIGHT_ENABLE_CP: "false"
+      HINDSIGHT_API_LLM_PROVIDER: ollama
+      HINDSIGHT_API_LLM_BASE_URL: http://host.docker.internal:11434/v1
+      HINDSIGHT_API_LLM_MODEL: qwen2.5-coder:7b
+      HINDSIGHT_API_LLM_OLLAMA_NUM_CTX: "8192"
+      HINDSIGHT_API_LLM_MAX_CONCURRENT: "1"
+      HINDSIGHT_API_RETAIN_MAX_COMPLETION_TOKENS: "4096"
+      HINDSIGHT_API_WORKER_ID: stackchan-hindsight
+      HINDSIGHT_API_ENABLE_BANK_LLM_HEALTH: "true"
+      HINDSIGHT_API_ENABLE_OBSERVATIONS: "false"
+      HINDSIGHT_API_BANK_STATS_CACHE_TTL_SECONDS: "0"
+      HF_HUB_OFFLINE: "1"
+    volumes:
+      - hindsight-data:/home/hindsight/.pg0
+    networks: [stackchan]
+    healthcheck:
+      test: ["CMD", "python3", "-m", "hindsight_api.http_probe", "http://localhost:8888/health", "5"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
     logging:
       driver: json-file
       options:
@@ -24,3 +63,5 @@ networks:
 volumes:
   bookmarks:
     name: stackchan-bookmarks
+  hindsight-data:
+    name: stackchan-hindsight-data

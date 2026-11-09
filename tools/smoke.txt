@@ -118,3 +118,15 @@ bookmarks|bookmark_continue|{"book":"Hilya"}
 bookmarks|bookmark_continue|{"book":"Quran"}
 bookmarks|bookmark_continue|{}
 bookmarks|bookmark_clear|{"book":"hilya"}
+# memory (Hindsight; smoke bank stackchan-smoke, Mo's bank untouched): learn, recall, survive restarts of bridge and hindsight
+hindsight|reset|{}
+memory|memory_status|{}
+memory|memory_recall|{"query":"What is my favourite Japanese snack?","_expect":"haven't learned"}
+memory|memory_learn|{"text":"My favourite Japanese snack is matcha Kit Kat."}
+hindsight|wait|{"max_s":300}
+memory|memory_recall|{"query":"What is my favourite Japanese snack?","_expect":"Kit Kat"}
+memory|memory_status|{}
+!restart|stackchan-hindsight|
+hindsight|wait|{"max_s":180}
+!restart||
+memory|memory_recall|{"query":"Japanese snack","_expect":"Kit Kat"}
