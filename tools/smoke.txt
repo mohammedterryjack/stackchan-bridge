@@ -120,17 +120,17 @@ bookmarks|bookmark_continue|{}
 bookmarks|bookmark_clear|{"book":"hilya"}
 # memory (Hindsight; smoke bank stackchan-smoke, Mo's bank untouched): learn, recall, survive restarts of bridge and hindsight
 hindsight|reset|{}
-memory|memory_status|{}
-memory|memory_recall|{"query":"What is my favourite Japanese snack?","_expect":"haven't learned"}
-memory|memory_learn|{"text":"My favourite Japanese snack is matcha Kit Kat."}
+memory|learn_status|{}
+memory|learn_recall|{"topic":"What is my favourite Japanese snack?","_expect":"haven't learnt"}
+memory|learn_this|{"fact":"My favourite Japanese snack is matcha Kit Kat."}
 hindsight|wait|{"max_s":300}
-memory|memory_recall|{"query":"What is my favourite Japanese snack?","_expect":"Kit Kat"}
-memory|memory_status|{}
+memory|learn_recall|{"topic":"What is my favourite Japanese snack?","_expect":"Kit Kat"}
+memory|learn_status|{}
 !restart|stackchan-hindsight|
 hindsight|wait|{"max_s":180}
 !restart||
-memory|memory_recall|{"query":"Japanese snack","_expect":"Kit Kat"}
+memory|learn_recall|{"topic":"Japanese snack","_expect":"Kit Kat"}
 # memory reflection (background): start one on the smoke bank and check the status reply; make test-reflect waits for completion
-memory|memory_reflection|{"question":"never asked xyz","_expect":"haven't been asked"}
-memory|memory_reflect|{"question":"What snack should I bring Mo as a gift?","_expect":"thinking about"}
-memory|memory_reflection|{"question":"snack","_expect":"snack"}
+memory|learn_reflection|{"question":"never asked xyz","_expect":"haven't been asked"}
+memory|learn_reflect|{"question":"What snack should I bring Mo as a gift?","_expect":"thinking about"}
+memory|learn_reflection|{"question":"snack","_expect":"snack"}

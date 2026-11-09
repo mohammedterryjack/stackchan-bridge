@@ -4,13 +4,13 @@ Backed by the Hindsight container (compose service `hindsight`, data in the stac
 volume). Hindsight extracts facts with Mo's local Ollama model and embeds/reranks them with its own
 local models; recall needs no LLM. One path, no fallbacks: if Hindsight is down the server refuses to
 start, and failed learning operations are reported as errors.
-Tools: memory_learn, memory_recall, memory_status, memory_reflect, memory_reflection.
+Tools: learn_this (ingest), learn_recall (fetch), learn_status, learn_reflect, learn_reflection.
 
 Reflection is Hindsight's agentic reflect (search memories + observations, then reason) on the local 7B,
-which takes minutes, far past the 8 s tool deadline. memory_reflect queues a job in a small JSON file on
+which takes minutes, far past the 8 s tool deadline. learn_reflect queues a job in a small JSON file on
 the bookmarks volume and starts one detached worker process (`memory_server.py --reflect-worker`, one per
 bank, guarded by a lock) that waits for pending learning to settle, runs the reflect and records the
-answer or the error. memory_reflection reads that file. Jobs survive restarts: a job left running by a
+answer or the error. learn_reflection reads that file. Jobs survive restarts: a job left running by a
 dead worker is run again by the next worker.
 """
 
@@ -45,7 +45,7 @@ TIMEOUT = httpx.Timeout(connect=3, read=6, write=3, pool=3)
 RECALL_TOP = 3
 TEXT_MAX = 600
 CONTEXT = "Mo is teaching Stack-chan (his desk robot) something to remember"
-U = "Stack-chan's own long-term memory of things Mo has taught her (local Hindsight memory)."
+U = "Stack-chan's ONLY real long-term memory of what Mo teaches her."
 STATE_DIR = os.environ.get("MEMORY_STATE_DIR", "/data/bookmarks")
 JOBS_FILE = os.path.join(STATE_DIR, f"reflections-{BANK}.json")
 WORKER_LOG = f"/tmp/memory-reflect-{BANK}.log"
@@ -96,12 +96,12 @@ def _pending() -> int:
                for st in ("pending", "processing"))
 
 
-@mcp.tool(name="memory_learn", description=f"{U} Use when Mo says remember / learn / note this / don't forget, or tells you a new fact about himself, people, places or anything he wants you to know later. text = the fact in one or two plain sentences, written from Mo's point of view (e.g. 'My sister Aisha's favourite flower is the blue iris').")
+@mcp.tool(name="learn_this", description=f"{U} Call this whenever Mo says learn that, remember, note this or don't forget, or tells you something to know later. Nothing is kept unless you call it, so never just say you remembered. fact = what to learn, in Mo's words (e.g. My sister Aisha loves blue irises).")
 @logged(log)
-def memory_learn(text: str) -> str:
-    text = " ".join(str(text or "").split())
+def learn_this(fact: str) -> str:
+    text = " ".join(str(fact or "").split())
     if not text:
-        raise ValueError("pass the fact to learn as text")
+        raise ValueError("pass the fact to learn")
     if len(text) > 2000:
         raise ValueError("that's too long to learn in one go; split it into shorter facts")
     if _llm_problem:
@@ -122,12 +122,12 @@ def memory_learn(text: str) -> str:
         time.sleep(0.5)
 
 
-@mcp.tool(name="memory_recall", description=f"{U} Use when Mo asks what you remember or know about something he told you before (people, pets, preferences, plans, facts). Returns up to {RECALL_TOP} remembered facts, most relevant first; if none actually answer the question, say you haven't learned that yet. query = what to look up, e.g. 'my cat' or 'Aisha's favourite flower'.")
+@mcp.tool(name="learn_recall", description=f"{U} Call this when Mo asks what have you learnt about, what do you know about, do you remember, or anything he taught you before; never answer from guesswork. Gives up to {RECALL_TOP} learnt facts, best first; if none fit, say you have not learnt it. topic = what to look up.")
 @logged(log)
-def memory_recall(query: str) -> str:
-    query = " ".join(str(query or "").split())
+def learn_recall(topic: str) -> str:
+    query = " ".join(str(topic or "").split())
     if not query:
-        raise ValueError("pass what to recall as query")
+        raise ValueError("pass the topic to recall")
     res = _req("POST", "/memories/recall", json={"query": query, "budget": "low", "max_tokens": 800, "types": ["world", "experience"]})
     facts: list[str] = []
     for r in res.get("results") or []:
@@ -140,14 +140,14 @@ def memory_recall(query: str) -> str:
     pending = _pending()
     tail = f" (I'm still learning {pending} more thing{'s' if pending != 1 else ''}.)" if pending else ""
     if not facts:
-        return f"I haven't learned anything about {query} yet.{tail}"
+        return f"I haven't learnt anything about {query} yet.{tail}"
     out = "Here's what I remember, most relevant first: " + " ".join(f"{i}. {f}" for i, f in enumerate(facts, 1)) + tail
     return out[:TEXT_MAX]
 
 
-@mcp.tool(name="memory_status", description=f"{U} Use when Mo asks how much you've learned, whether you've finished learning something, or if your memory is working.")
+@mcp.tool(name="learn_status", description=f"{U} How much you have learnt, and whether learning is still running or failed.")
 @logged(log)
-def memory_status() -> str:
+def learn_status() -> str:
     s = _req("GET", "/stats")
     facts = sum(v for k, v in (s.get("nodes_by_fact_type") or {}).items() if k in ("world", "experience"))
     pending, failed = _pending(), int(s.get("failed_operations") or 0)
@@ -259,7 +259,7 @@ def _reflect_worker() -> None:
             if not answer:
                 raise RuntimeError("Hindsight reflect returned an empty answer")
             result = {"status": "done", "answer": answer}
-        except Exception as e:  # noqa: BLE001 - recorded on the job and raised by memory_reflection
+        except Exception as e:  # noqa: BLE001 - recorded on the job and raised by learn_reflection
             result = {"status": "failed", "error": f"{type(e).__name__}: {str(e)[:200]}"}
             log.error(f"reflect job {job['id']} failed: {result['error']}")
 
@@ -272,9 +272,9 @@ def _reflect_worker() -> None:
         log.info(f"reflect job {job['id']} {result['status']} in {_now() - job['started']:.0f} s")
 
 
-@mcp.tool(name="memory_reflect", description=f"{U} Use when Mo asks you to think about, reflect on, or work something out from what you've learned (e.g. 'what gift should I get Aisha?', 'what do you know about my habits?'). Starts thinking in the background (it takes minutes on the local model) and replies straight away; later use memory_reflection to give the answer. question = what to reflect on.")
+@mcp.tool(name="learn_reflect", description=f"{U} Starts thinking in the background (takes minutes) about a question using everything learnt, e.g. what gift suits Aisha. Later give the answer with learn_reflection.")
 @logged(log)
-def memory_reflect(question: str) -> str:
+def learn_reflect(question: str) -> str:
     question = " ".join(str(question or "").split())
     if not question:
         raise ValueError("pass the question to reflect on")
@@ -300,9 +300,9 @@ def memory_reflect(question: str) -> str:
     return f"I'm thinking about that now{ahead}; ask me for my reflection in a few minutes."
 
 
-@mcp.tool(name="memory_reflection", description=f"{U} Use when Mo asks for your reflection, your answer, or what you concluded after memory_reflect. Gives the latest finished reflection, or says you're still thinking. question = optional words from the question, to pick an earlier reflection.")
+@mcp.tool(name="learn_reflection", description=f"{U} Gives the latest finished learn_reflect answer, or says you are still thinking. question = optional words to pick an earlier one.")
 @logged(log)
-def memory_reflection(question: str | None = None) -> str:
+def learn_reflection(question: str | None = None) -> str:
     q = " ".join(str(question or "").split()).lower()
     jobs = _locked(lambda jobs: (False, list(jobs)))
     if q:

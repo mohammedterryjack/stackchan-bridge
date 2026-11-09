@@ -301,6 +301,8 @@ async def pipe_websocket_to_process(websocket, process_holder, target, pending_c
             if not message:
                 continue
             msg = json.loads(message)
+            if isinstance(msg, dict) and msg.get("method") in ("initialize", "tools/list"):
+                logger.info(f"[{target}] << {msg['method']} id={msg.get('id')}")
             if isinstance(msg, dict) and msg.get("method") == "initialize":
                 session_state["init_message"] = message
                 session_state["initialized"] = False
@@ -582,6 +584,8 @@ async def pipe_process_to_websocket(websocket, process_holder, target, pending_c
                     resp = json.loads(payload)
                 except Exception:
                     continue
+                if isinstance(resp, dict) and isinstance((resp.get("result") or {}).get("tools"), list):
+                    logger.info(f"[{target}] >> tools/list reply tools={len(resp['result']['tools'])} bytes={len(payload.encode('utf-8'))}")
                 if isinstance(resp, dict) and resp.get("id") in pending_calls:
                     tool, started = pending_calls.pop(resp["id"])
                     is_error = "error" in resp or bool((resp.get("result") or {}).get("isError"))
