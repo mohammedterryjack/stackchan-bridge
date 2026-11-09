@@ -3,17 +3,14 @@ calculator|calculator|{"python_expression":"2+3*4"}
 web-search|web_search|{"query":"stack-chan robot","max_results":2}
 time|time_now|{"timezone":"Europe/London"}
 hackernews|hn_top_stories|{"num_stories":2}
-reddit|reddit_posts|{"subreddit":"python","limit":2}
 youtube|youtube_info|{"video":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
 news|news_headlines|{"limit":2}
 arxiv|arxiv_search|{"query":"robot","max_results":2}
 zines|zine_search|{"query":"hacking","limit":2}
-prayer-times|prayer_next|{"city":"Manchester","country":"UK"}
 youtube-search|youtube_search|{"query":"stack-chan","limit":2}
 quran-hadith|quran_read|{"surah":"1","ayah":"1"}
-darknet-diaries|darknet_episode|{"episode":"1"}
 maps|map_search|{"query":"Big Ben","limit":1}
-tanakh|tanakh_verse|{"book":"Genesis","chapter":1,"verse":"1"}
+tanakh|tanakh_read|{"book":"Genesis","chapter":1,"verse":"1"}
 rumi|rumi_read|{"book":1,"verse":1}
 aesop|aesop_read|{"fable_id":1}
 hadith-commentary|bahjat_read|{"hadith_number":1}
@@ -118,6 +115,10 @@ bookmarks|bookmark_continue|{"book":"Hilya"}
 bookmarks|bookmark_continue|{"book":"Quran"}
 bookmarks|bookmark_continue|{}
 bookmarks|bookmark_clear|{"book":"hilya"}
+bookmarks|bookmark_set|{"book":"Tanakh","position":"Genesis 3:4"}
+bookmarks|bookmark_continue|{"book":"Tanakh","_expect":"Genesis 3:4"}
+bookmarks|bookmark_continue|{"book":"Tanakh","_expect":"Genesis 3:"}
+bookmarks|bookmark_clear|{"book":"tanakh"}
 # memory (Hindsight; smoke bank stackchan-smoke, Mo's bank untouched): learn, recall, survive restarts of bridge and hindsight
 hindsight|reset|{}
 memory|learn_status|{}
@@ -148,3 +149,6 @@ sufi-classics|ghazali_read|{}
 hilyat-al-awliya|hilya_read|{}
 hadith-commentary|bahjat_read|{}
 female-awliya|safwa_women_read|{}
+tanakh|tanakh_read|{}
+tanakh|tanakh_read|{"book":"Psalms","chapter":23}
+tanakh|tanakh_read|{"book":"Isaiah"}

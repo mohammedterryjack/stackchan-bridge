@@ -120,11 +120,13 @@ def prayer_times(
     date: str = "today",
     method: int = DEFAULT_METHOD,
 ) -> str:
-    """Islamic prayer (salah) times for a city and country, today, tomorrow or a date; ask the city if not given."""
+    """Islamic prayer (salah) times for a city and country, plus which prayer is next and how long until it ('when is the next prayer'); today, tomorrow or a date; ask the city if not given."""
     city, country = _need(city, country)
     d = (date or "").strip().lower()
+    now = None
     if d in ("", "today"):
-        date_str = _today_str(_local_now(city, country, method))
+        now = _local_now(city, country, method)
+        date_str = _today_str(now)
     elif d == "tomorrow":
         date_str = (_local_now(city, country, method) + timedelta(days=1)).strftime("%d-%m-%Y")
     elif re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
@@ -142,20 +144,14 @@ def prayer_times(
             raise RuntimeError(f"Aladhan missing timing for {name}")
         hh, mm = _parse_hhmm(t[name])
         parts.append(f"{name} {hh:02d}:{mm:02d}")
-    return f"{city}, {info['date']}: " + ", ".join(parts) + "."
+    out = f"{city}, {info['date']}: " + ", ".join(parts) + "."
+    if d in ("", "today"):
+        out += " " + _next_prayer(city, country, method, now, info)
+    return out
 
 
-@mcp.tool()
-def prayer_next(
-    city: str,
-    country: str,
-    method: int = DEFAULT_METHOD,
-) -> str:
-    """The next prayer for a city and country and how long until it."""
-    city, country = _need(city, country)
-    now = _local_now(city, country, method)
-    info = _fetch_timings(_today_str(now), city, country, method)
-    tzname = info["timezone"]
+def _next_prayer(city: str, country: str, method: int, now, info: dict) -> str:
+    """'Next: <prayer> at HH:MM (in Xh Ym)' given the city's local now and today's timings."""
     t = info["timings"]
     for name in SALAH_ORDER:
         if name not in t:
@@ -165,8 +161,7 @@ def prayer_next(
         if when > now:
             mins = int((when - now).total_seconds() // 60)
             return (
-                f"Next: {name} at {hh:02d}:{mm:02d} {tzname} "
-                f"(in {mins}m) — {city}, {country}; {info['method_name']}"
+                f"Next: {name} at {hh:02d}:{mm:02d} (in {mins // 60}h {mins % 60}m)."
             )
     tomorrow = now + timedelta(days=1)
     info2 = _fetch_timings(tomorrow.strftime("%d-%m-%Y"), city, country, method)
@@ -177,8 +172,7 @@ def prayer_next(
     when = tomorrow.replace(hour=hh, minute=mm, second=0, microsecond=0)
     mins = int((when - now).total_seconds() // 60)
     return (
-        f"Next: Fajr at {hh:02d}:{mm:02d} {tzname} tomorrow "
-        f"(in {mins}m) — {city}, {country}; {info2['method_name']}"
+        f"Next: Fajr tomorrow at {hh:02d}:{mm:02d} (in {mins // 60}h {mins % 60}m)."
     )
 
 

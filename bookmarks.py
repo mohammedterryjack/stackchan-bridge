@@ -73,7 +73,7 @@ def _zine(pos: str) -> dict:
 BOOKS: dict[str, tuple] = {
     "quran": ("the Quran", "quran-hadith", "quran_read", ("koran", "qur'an", "quran"), _quran, "surah:ayah, e.g. 2:255"),
     "hadith": ("Hadith collections", "quran-hadith", "hadith_get", ("hadith", "nawawi", "forty hadith", "sahih"), _hadith, "collection number, e.g. nawawi 5"),
-    "tanakh": ("the Tanakh", "tanakh", "tanakh_chapter", ("torah", "hebrew bible", "old testament", "tanach"), _verse_ref("book", "chapter", "start"), "book chapter:verse, e.g. Genesis 3:1"),
+    "tanakh": ("the Tanakh", "tanakh", "tanakh_read", ("torah", "hebrew bible", "old testament", "tanach"), _verse_ref("book", "chapter", "verse"), "book chapter:verse, e.g. Genesis 3:1"),
     "gospel": ("the Gospels", "gospel", "gospel_read", ("gospels", "gospel", "injil", "barnabas", "new testament gospels"), _verse_ref("book", "chapter", "verse_start"), "book chapter:verse, e.g. John 3:16"),
     "ethiopian": ("the Ethiopian canon", "ethiopian-canon", "ethiopian_read", ("ethiopian canon", "enoch", "jubilees", "meqabyan"), _verse_ref("book", "chapter", "verse_start"), "book chapter:verse, e.g. Enoch 1:1"),
     "rumi": ("Rumi's Mathnawi", "rumi", "rumi_read", ("mathnawi", "masnavi", "rumi"), _nums("book", "verse", defaults={"verse": 1}), "book:verse, e.g. 1:100"),

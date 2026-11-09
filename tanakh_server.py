@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import random
 import re
 import urllib.parse
 from collections import OrderedDict
@@ -81,28 +82,55 @@ def _render(c: dict, start: int, end: int) -> str:
         last = i
     ref = f"({c['book']} {c['chapter']}:{start}" + (f"-{last})" if last > start else ")")
     more = f"Next: verse {last + 1}" if last < n else "End of chapter."
-    nxt = {"book": c["book"], "chapter": c["chapter"], "start": last + 1} if last < n else {"book": c["book"], "chapter": c["chapter"] + 1}
+    nxt = {"book": c["book"], "chapter": c["chapter"], "verse": last + 1} if last < n else {"book": c["book"], "chapter": c["chapter"] + 1}
     bookmarks.record("tanakh", ref[1:-1], nxt)
     return "\n".join([*lines, ref, more])
 
 
-@mcp.tool()
-def tanakh_verse(book: str, chapter: int, verse: str = "1") -> str:
-    """Torah / Hebrew Bible: a verse or range by book and chapter, e.g. Genesis 1:1-5."""
-    m = re.fullmatch(r"\s*(\d{1,3})\s*(?:-\s*(\d{1,3}))?\s*", str(verse))
-    if not m:
-        raise ValueError("verse must be a number like 3 or a range like 1-5")
-    a = int(m.group(1))
-    b = int(m.group(2) or a)
-    if b < a:
-        raise ValueError("range end must not be before start")
+# Sefaria book names -> chapter counts (for random passages)
+BOOKS = {
+    "Genesis": 50, "Exodus": 40, "Leviticus": 27, "Numbers": 36, "Deuteronomy": 34, "Joshua": 24, "Judges": 21,
+    "I Samuel": 31, "II Samuel": 24, "I Kings": 22, "II Kings": 25, "Isaiah": 66, "Jeremiah": 52, "Ezekiel": 48,
+    "Hosea": 14, "Joel": 4, "Amos": 9, "Obadiah": 1, "Jonah": 4, "Micah": 7, "Nahum": 3, "Habakkuk": 3,
+    "Zephaniah": 3, "Haggai": 2, "Zechariah": 14, "Malachi": 3, "Psalms": 150, "Proverbs": 31, "Job": 42,
+    "Song of Songs": 8, "Ruth": 4, "Lamentations": 5, "Ecclesiastes": 12, "Esther": 10, "Daniel": 12, "Ezra": 10,
+    "Nehemiah": 13, "I Chronicles": 29, "II Chronicles": 36,
+}
+
+
+def _random_verse(book: str | None) -> str:
+    """One random verse (whole Tanakh, or one book); does not move the bookmark."""
+    if book:
+        names = {k.lower(): k for k in BOOKS}
+        b = names.get(re.sub(r"\s+", " ", book.strip()).lower())
+        if not b:
+            raise ValueError(f"unknown book {book!r}; books: {', '.join(BOOKS)}")
+    else:
+        b = random.choice(list(BOOKS))
+    c = _chapter(b, random.randint(1, BOOKS[b]))
+    v = random.randint(1, len(c["verses"]))
+    return f"{c['verses'][v - 1]} ({c['book']} {c['chapter']}:{v})"
+
+
+@mcp.tool(description="Torah / Hebrew Bible: read by book, chapter and optional verse or range (e.g. Genesis 1, Psalms 23:1-4), or a random verse when no chapter is given.")
+def tanakh_read(book: str | None = None, chapter: int | None = None, verse: str | int | None = None) -> str:
+    if chapter is None:
+        if verse is not None:
+            raise ValueError("verse needs a chapter, e.g. book Genesis, chapter 1, verse 3")
+        return _random_verse(book)
+    if not book:
+        raise ValueError("chapter needs a book, e.g. Genesis or Psalms")
+    if verse is None or str(verse).strip() == "":
+        a, b = 1, MAX_VERSES
+    else:
+        m = re.fullmatch(r"\s*(\d{1,3})\s*(?:-\s*(\d{1,3}))?\s*", str(verse))
+        if not m:
+            raise ValueError("verse must be a number like 3 or a range like 1-5")
+        a = int(m.group(1))
+        b = int(m.group(2)) if m.group(2) else a + MAX_VERSES - 1
+        if b < a:
+            raise ValueError("range end must not be before start")
     return _render(_chapter(book, chapter), a, b)
-
-
-@mcp.tool()
-def tanakh_chapter(book: str, chapter: int, start: int = 1) -> str:
-    """Torah / Hebrew Bible: read a chapter aloud a few verses at a time."""
-    return _render(_chapter(book, chapter), int(start), int(start) + MAX_VERSES - 1)
 
 
 @mcp.tool()

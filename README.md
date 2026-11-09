@@ -1,11 +1,11 @@
 # Stack-chan MCP bridge
 
-A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, Sufi classics (al-Ghazali, Ibn Arabi, al-Jilani), Hilyat al-Awliya, recipes, Japanese lessons in romaji, live learning (a local Hindsight memory), maps and more. It runs 28 local MCP servers exposing 85 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
+A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, Sufi classics (al-Ghazali, Ibn Arabi, al-Jilani), Hilyat al-Awliya, recipes, Japanese lessons in romaji, live learning (a local Hindsight memory), maps and more. It runs 26 local MCP servers exposing 77 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
 
 ## How it works
 `mcp_pipe.py` opens a WebSocket to your xiaozhi.me agent's MCP endpoint and starts every server listed in `mcp_config.json` as a child process (stdio). When you talk to Stack-chan, the Xiaozhi cloud can call these tools and read the result aloud. Tools are only used while someone is talking to the robot.
 
-## Servers and tools (28 servers, 85 tools)
+## Servers and tools (26 servers, 77 tools)
 - calculator: calculator, more_text (pages through long replies), and the bookmark tools bookmark_continue, bookmark_list, bookmark_set, bookmark_clear (served by mcp_pipe.py on this connection; see Bookmarks below)
 
 Reply cap: mcp_pipe.py caps every tool reply at ~800 chars (max 1000), splitting on sentence/verse boundaries with "Part N of M" notes; Stack-chan calls more_text(part=N) to continue.
@@ -13,16 +13,14 @@ Reply cap: mcp_pipe.py caps every tool reply at ~800 chars (max 1000), splitting
 - web-search: web_search, web_read
 - time: time_now, time_convert (city or timezone required, no default)
 - hackernews: hn_top_stories, hn_search, hn_story, hn_user
-- reddit: reddit_posts, reddit_post
 - youtube: youtube_transcript, youtube_info
 - youtube-search: youtube_search
 - news: news_headlines (topic, or source such as Simon Willison or Schneier)
 - arxiv: arxiv_search, arxiv_read, arxiv_abstract
 - zines: zine_search, zine_read
-- darknet-diaries: darknet_episodes, darknet_episode, darknet_transcript, darknet_find
-- prayer-times: prayer_times, prayer_next, prayer_alarms (city and country required, no default)
+- prayer-times: prayer_times (today's reply also says which prayer is next and how long until it), prayer_alarms (city and country required, no default)
 - quran-hadith: quran_read, quran_search, hadith_get (no number = random hadith)
-- tanakh: tanakh_verse, tanakh_chapter, tanakh_search (Sefaria, English)
+- tanakh: tanakh_read (book, chapter, optional verse or range; no chapter = random verse), tanakh_search (Sefaria, English)
 - rumi: rumi_read (no book = random passage), rumi_search (Nicholson's English Mathnawi, Books 1-6, via HF dataset)
 - aesop: aesop_read (no fable = random), aesop_search (Townsend's Aesop's Fables, 313 fables, via HF dataset)
 - hadith-commentary: bahjat_read (no number = random), bahjat_search (Ibn Abi Jamrah's Bahjat al-Nufus, classical Arabic, via HF dataset; search normalises alif, ya, ta marbuta and diacritics)
@@ -38,7 +36,7 @@ Reply cap: mcp_pipe.py caps every tool reply at ~800 chars (max 1000), splitting
 - ethiopian-canon: ethiopian_read (no chapter = random verse), ethiopian_search (no query = list books) (Ethiopian Orthodox canon books not in the Tanakh or gospel tools, in their source language where possible, which the AI translates or explains: Ge'ez 1 Enoch, Jubilees, Sirach, Wisdom, Baruch, 4 Baruch, 1-3 Meqabyan, Canons of Clement and Acts to Revelation; Amharic EOTC Qalementos, Didesqelya, Tobit, Judith, 1-2 Esdras (Ezra Kale/Sutuel), Letter of Jeremiah, Azariah, Susanna and Bel; English only where no Ge'ez/Amharic exists: Sinodos and its Arabic/Sahidic recensions (Horner), Testament of Our Lord (Kidan stand-in), Gessew (Schodde), Apostolic Constitutions and 85 Canons (Abtelis stand-in), Additions to Esther, Prayer of Manasseh, Psalm 151)
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
 
-Bookmarks: every book read tool saves where you stopped, one bookmark per book: quran_read (Quran), hadith_get (hadith collections), tanakh_chapter/tanakh_verse (Tanakh), gospel_read, ethiopian_read, rumi_read, aesop_read, bahjat_read, dreams_read, ghazali_read (Ihya), ibnarabi_read (Futuhat), jilani_read (Ghunya), hilya_read, sulami_women_read, safwa_women_read and zine_read. Random/search tools do not move a bookmark. Say "continue reading the Quran" (bookmark_continue reads the next passage through that book's live server), "what am I reading?" (bookmark_list), "set my Rumi bookmark to 1:100" (bookmark_set) or "forget my Hilya bookmark" (bookmark_clear). They live in /data/bookmarks/bookmarks.json on the named Docker volume `stackchan-bookmarks` (stackchan-bridge only), so they survive rebuilds and restarts; writes are atomic under a file lock (bookmarks.py), and the bridge refuses to start if the volume is not writable. `make test` uses a separate smoke-test.json on the same volume and restarts the container once to prove bookmarks persist.
+Bookmarks: every book read tool saves where you stopped, one bookmark per book: quran_read (Quran), hadith_get (hadith collections), tanakh_read (Tanakh), gospel_read, ethiopian_read, rumi_read, aesop_read, bahjat_read, dreams_read, ghazali_read (Ihya), ibnarabi_read (Futuhat), jilani_read (Ghunya), hilya_read, sulami_women_read, safwa_women_read and zine_read. Random/search tools do not move a bookmark. Say "continue reading the Quran" (bookmark_continue reads the next passage through that book's live server), "what am I reading?" (bookmark_list), "set my Rumi bookmark to 1:100" (bookmark_set) or "forget my Hilya bookmark" (bookmark_clear). They live in /data/bookmarks/bookmarks.json on the named Docker volume `stackchan-bookmarks` (stackchan-bridge only), so they survive rebuilds and restarts; writes are atomic under a file lock (bookmarks.py), and the bridge refuses to start if the volume is not writable. `make test` uses a separate smoke-test.json on the same volume and restarts the container once to prove bookmarks persist.
 
 Tool-list size: Xiaozhi caps the tool list it will accept (undocumented token limit), so descriptions are one or two sentences, random/list variants are folded into read/search (no args = random or list), and mcp_pipe strips titles, null defaults and Optional wrappers from schemas. After this the full list is ~30 KB.
 
@@ -120,7 +118,7 @@ The first argument is a server name from `mcp_config.json`; the second is `list`
 - Zines: [MTerryJack/hacker-zines](https://huggingface.co/datasets/MTerryJack/hacker-zines).
 - Prayer times: [AlAdhan](https://aladhan.com) API.
 - Maps: [OpenStreetMap](https://www.openstreetmap.org/copyright) data via Nominatim (please respect its usage policy) and routing via the public [OSRM](https://project-osrm.org) demo server. Map data (c) OpenStreetMap contributors, ODbL.
-- Web search: DuckDuckGo. News: Al Jazeera, DW, The Real News Network, Reuters (via Google News, reuters.com only), Google News, Simon Willison, Krebs on Security, Schneier on Security, LWN, 2600 RSS feeds. Darknet Diaries: darknetdiaries.com and its podcast feed.
-- Third-party MCP servers: duckduckgo-mcp-server, mcp-hn, mcp-server-reddit, mcp-youtube-transcript, arxiv-mcp-server. `mcp_pipe.py` is adapted from the Xiaozhi mcp-calculator example pipe.
+- Web search: DuckDuckGo. News: Al Jazeera, DW, The Real News Network, Reuters (via Google News, reuters.com only), Google News, Simon Willison, Krebs on Security, Schneier on Security, LWN, 2600 RSS feeds.
+- Third-party MCP servers: duckduckgo-mcp-server, mcp-hn, mcp-youtube-transcript, arxiv-mcp-server. `mcp_pipe.py` is adapted from the Xiaozhi mcp-calculator example pipe.
 
 Debugging: the hadith-commentary, prophet-dreams, sufi-classics, hilyat-al-awliya, gospel and ethiopian-canon servers log one stderr line per tool call (`tool=… args=… ids=[…] ms=… ok|error=…`) and, at startup, the pinned dataset revision and row counts; they exit at startup if the dataset cannot load. See `docker logs stackchan-bridge`.
