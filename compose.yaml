@@ -8,6 +8,7 @@ services:
     container_name: ${BRIDGE_CONTAINER:-stackchan-bridge}
     init: true  # reaps the detached memory reflect worker
     restart: unless-stopped
+    mem_limit: 448m  # measured peak 307 MiB during make test-reflect (idle ~115-195 MiB)
     env_file: .env
     read_only: true
     tmpfs: ["/tmp", "/home/bridge:uid=1000,gid=1000"]
@@ -41,6 +42,7 @@ services:
     image: ghcr.io/vectorize-io/hindsight:1.2.0-slim
     container_name: stackchan-hindsight
     restart: unless-stopped
+    mem_limit: 640m  # measured ~390 MiB idle, 409 MiB peak through a reflection
     shm_size: 1g
     stop_grace_period: 75s
     environment:

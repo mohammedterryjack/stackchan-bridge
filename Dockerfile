@@ -10,6 +10,8 @@ RUN pip install --no-cache-dir "hijridate==2.6.0"
 # DuckDB httpfs fetched at build time for the build arch, under /opt (compose tmpfs wipes /home/bridge); pinned duckdb==1.3.2
 COPY duckdb_bake_httpfs.py /tmp/duckdb_bake_httpfs.py
 RUN python /tmp/duckdb_bake_httpfs.py && rm -f /tmp/duckdb_bake_httpfs.py
+# duckdb must stay 1.3.2: 2.0.0 dies with Illegal instruction on CPUs without AVX2 (oldmac); fail the build if anything moved it
+RUN python -c "import duckdb, sys; sys.exit(0 if duckdb.__version__ == '1.3.2' else 'duckdb is ' + duckdb.__version__ + ', must be 1.3.2')"
 # One process (server.py) serves every tool module below.
 COPY mcp_pipe.py server.py app.py hf_data.py mcp_tool_log.py bookmarks.py verse_corpus.py japanese_romaji.py mcp_config.json \
      calculator.py web_search_server.py time_server.py hn_server.py news_server.py zine_server.py prayer_times_server.py youtube_search_server.py \
