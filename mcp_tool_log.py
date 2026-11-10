@@ -1,7 +1,7 @@
-"""Shared stderr logging for the bridge's MCP tool servers (same line format as MCP_PIPE).
+"""Shared stderr logging for the bridge's MCP tools (same line format as MCP_PIPE).
 
 Each tool call logs one line: tool, args, row ids touched, duration and outcome. Errors re-raise so the
-caller sees them. hf_revision() pins a dataset to a commit so startup logs say exactly what was loaded.
+caller sees them.
 """
 
 from __future__ import annotations
@@ -12,7 +12,6 @@ import json
 import logging
 import sys
 import time
-import urllib.request
 
 _ids: contextvars.ContextVar[list] = contextvars.ContextVar("mcp_tool_ids")
 
@@ -56,12 +55,3 @@ def logged(log: logging.Logger):
             return out
         return wrap
     return deco
-
-
-def hf_revision(repo: str, timeout: float = 10.0) -> str:
-    """Current commit sha of a HF dataset repo; raises on any failure."""
-    with urllib.request.urlopen(f"https://huggingface.co/api/datasets/{repo}/revision/main", timeout=timeout) as r:
-        sha = json.load(r)["sha"]
-    if not sha:
-        raise RuntimeError(f"No revision sha for {repo}")
-    return sha

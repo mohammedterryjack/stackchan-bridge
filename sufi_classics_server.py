@@ -1,26 +1,20 @@
 """Sufi classics MCP: al-Ghazali's Ihya Ulum al-Din, Ibn Arabi's al-Futuhat al-Makkiyya and Abd al-Qadir al-Jilani's
-al-Ghunya, original Arabic, from hf://datasets/MTerryJack/sufi-classics (OpenITI-derived, CC BY-NC-SA 4.0; DuckDB in memory).
+al-Ghunya, original Arabic, from hf://datasets/MTerryJack/sufi-classics (OpenITI-derived, CC BY-NC-SA 4.0; read on demand).
 One tool set per author (ghazali_*, ibnarabi_*, jilani_*): _contents, _read, _search, _random. Each call logs one stderr
-line via mcp_tool_log; a failed dataset load exits at startup."""
+line via mcp_tool_log; an unreachable dataset fails the call aloud."""
 
 from __future__ import annotations
 
-import contextvars
 import re
-import sys
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
-import duckdb
-from fastmcp import FastMCP
+from app import mcp
+from hf_data import HFTable
 
 import bookmarks
 
-from mcp_tool_log import get_logger, hf_revision, logged, note
+from mcp_tool_log import get_logger, logged, note
 
 REPO = "MTerryJack/sufi-classics"
-CALL_TIMEOUT_S = 8.0
 MAX_LIMIT = 5
 CONTENTS_PAGE = 30
 SNIPPET_CHARS = 180
@@ -56,44 +50,18 @@ EN_AR = {
 }
 
 log = get_logger("SUFI_CLASSICS")
-mcp = FastMCP("SufiClassics")
-_lock = threading.Lock()
-_con: duckdb.DuckDBPyConnection | None = None
-_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="sufi")
 
 
-def _load() -> None:
-    global _con
-    t0 = time.monotonic()
-    rev = hf_revision(REPO)
-    url = f"hf://datasets/{REPO}@{rev}/data/train.parquet"
-    con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
-    con.execute("LOAD httpfs")
-    con.execute("CREATE TABLE t AS SELECT id, book_key, book, book_ar, volume_ar, chapter_number, chapter_title_ar, part, text_ar, licence, "
-                + NORM_SQL.format(c="text_ar") + f" AS nt FROM read_parquet('{url}')")
-    counts = dict(con.execute("SELECT book_key, count(*) FROM t GROUP BY 1").fetchall())
+def _check(q) -> None:
+    counts = dict(q("SELECT book_key, count(*) FROM t GROUP BY 1"))
     missing = {k for k, _ in AUTHORS.values()} - set(counts)
     if missing:
-        raise RuntimeError(f"Books missing from {url}: {sorted(missing)}")
-    with _lock:
-        _con = con
-    log.info(f"loaded {REPO}@{rev[:12]} rows={sum(counts.values())} " + " ".join(f"[{k}]={v}" for k, v in sorted(counts.items())) + f" ms={(time.monotonic() - t0) * 1000:.0f}")
+        raise RuntimeError(f"Books missing from {REPO}: {sorted(missing)}")
+    log.info(f"{REPO} rows={sum(counts.values())} " + " ".join(f"[{k}]={v}" for k, v in sorted(counts.items())))
 
 
-def _q(sql: str, params: list) -> list:
-    with _lock:
-        if _con is None:
-            raise RuntimeError("Sufi classics dataset not loaded")
-        return _con.execute(sql, params).fetchall()
-
-
-def _run(fn, *args):
-    fut = _pool.submit(contextvars.copy_context().run, fn, *args)
-    try:
-        return fut.result(timeout=CALL_TIMEOUT_S)
-    except FuturesTimeout:
-        fut.cancel()
-        raise TimeoutError(f"sufi tool exceeded {CALL_TIMEOUT_S:.0f}s") from None
+_q = HFTable(REPO, "Sufi classics", {"t": lambda src, cols: "SELECT id, book_key, book, book_ar, volume_ar, chapter_number, chapter_title_ar, part, text_ar, licence, "
+             + NORM_SQL.format(c="text_ar") + " AS nt FROM " + src}, on_ready=_check).q
 
 
 def _norm(s: str) -> str:
@@ -189,13 +157,13 @@ def _register(pfx: str) -> None:
     hint = f"{label}. Text is classical Arabic: explain or translate it in the user's language."
 
     def contents(page: int = 1, query: str | None = None) -> str:
-        return _run(_contents_impl, pfx, page, query)
+        return _contents_impl(pfx, page, query)
 
     def read(chapter: int | None = None, part: int = 1) -> str:
-        return _run(_random_impl, pfx) if chapter is None else _run(_read_impl, pfx, chapter, part, True)
+        return _random_impl(pfx) if chapter is None else _read_impl(pfx, chapter, part, True)
 
     def search(query: str, limit: int = 3) -> str:
-        return _run(_search_impl, pfx, query, limit)
+        return _search_impl(pfx, query, limit)
 
     book = label.split(", ", 1)[1].split(" (")[0]
     docs = {
@@ -210,12 +178,3 @@ def _register(pfx: str) -> None:
 
 for _p in AUTHORS:
     _register(_p)
-
-
-if __name__ == "__main__":
-    try:
-        _load()
-    except BaseException as e:
-        log.critical(f"startup failed: dataset {REPO} did not load: {type(e).__name__}: {e}")
-        sys.exit(1)
-    mcp.run(transport="stdio", show_banner=False)

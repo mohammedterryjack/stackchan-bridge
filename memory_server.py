@@ -28,11 +28,10 @@ import time
 from datetime import datetime, timezone
 
 import httpx
-from fastmcp import FastMCP
 
+from app import mcp
 from mcp_tool_log import get_logger, logged, note
 
-mcp = FastMCP("Memory")
 log = get_logger("MEMORY")
 
 URL = os.environ["HINDSIGHT_URL"].rstrip("/")
@@ -326,25 +325,30 @@ def learn_reflection(question: str | None = None) -> str:
     return f"My reflection on '{j['question']}' (took {took}): {j['answer']}{more}"
 
 
-if __name__ == "__main__":
-    if sys.argv[1:] == ["--reflect-worker"]:
-        _reflect_worker()
-        sys.exit(0)
+def startup() -> None:
+    """Called once by server.py: check Hindsight and the bank, resume interrupted reflections, check the LLM in the
+    background. Hindsight being down is logged loudly but does not stop the other tools; learn_* calls then fail aloud."""
     try:
         h = _client.get(f"{URL}/health")
         h.raise_for_status()
     except httpx.HTTPError as e:
-        log.error(f"Hindsight memory is unreachable at startup ({type(e).__name__}); is the hindsight container running? Exiting.")
-        raise SystemExit(1) from e
+        log.error(f"Hindsight memory is unreachable at startup ({type(e).__name__}); is the hindsight container running? learn_* tools will fail until it is.")
+        return
     if _client.get(API + "/stats").status_code == 404:  # a fresh bank: create it so status/recall work before the first learn
         _req("PUT", "", json={})
         log.info(f"created memory bank {BANK}")
     log.info(f"Hindsight OK, bank={BANK}")
-    try:  # reflection jobs live beside the bookmarks; refuse to start if that volume is not writable
+    try:  # reflection jobs live beside the bookmarks
         _locked(lambda jobs: (True, None))
     except OSError as e:
-        raise SystemExit(f"reflection store {JOBS_FILE} is not writable: {e}") from e
+        log.error(f"reflection store {JOBS_FILE} is not writable: {e}; learn_reflect will fail until it is.")
+        return
     if _locked(lambda jobs: (False, _open_jobs(jobs))):
         _spawn_worker()  # resume reflections a restart interrupted
     threading.Thread(target=_check_llm, daemon=True).start()
-    mcp.run(transport="stdio", show_banner=False)
+
+
+if __name__ == "__main__":  # the background reflection worker: python memory_server.py --reflect-worker
+    if sys.argv[1:] != ["--reflect-worker"]:
+        raise SystemExit("memory_server.py only runs as --reflect-worker; the tools are served by server.py")
+    _reflect_worker()

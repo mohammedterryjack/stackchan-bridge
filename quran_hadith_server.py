@@ -6,7 +6,7 @@ import urllib.parse
 import re
 
 import httpx
-from fastmcp import FastMCP
+from app import mcp
 
 import bookmarks
 
@@ -25,7 +25,6 @@ COLLECTIONS = {
     "qudsi": ("Forty Hadith Qudsi", 40),
 }
 
-mcp = FastMCP("QuranHadith")
 _surahs: list[dict] = []
 
 
@@ -194,7 +193,3 @@ def hadith_get(collection: str = "nawawi", number: int | None = None, arabic: bo
     out = _hadith(c, n, arabic)
     bookmarks.record("hadith", f"{COLLECTIONS[c][0]}, hadith {n}", {"collection": c, "number": n + 1, "arabic": arabic} if n < COLLECTIONS[c][1] else None)
     return out
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)

@@ -5,11 +5,9 @@ from datetime import datetime
 import re
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
-from fastmcp import FastMCP
+from app import mcp
 
 NO_LOC = "No location given. Ask the user which city they are in."
-mcp = FastMCP("Time")
-
 
 def _tz(name: str | None) -> ZoneInfo:
     n = (name or "").strip()
@@ -62,7 +60,3 @@ def time_convert(
     dt = datetime(today.year, today.month, today.day, hour, minute, tzinfo=src)
     out = dt.astimezone(tgt)
     return f"{dt.strftime('%H:%M %a')} {src.key} = {out.strftime('%H:%M %a %d %b')} {tgt.key}"
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)

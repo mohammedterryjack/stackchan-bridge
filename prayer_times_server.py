@@ -11,9 +11,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx
-from fastmcp import FastMCP
-
-mcp = FastMCP("PrayerTimes")
+from app import mcp
 
 TIMEOUT = httpx.Timeout(connect=3, read=5, write=3, pool=3)
 NO_LOC = "No location given. Ask the user which city and country they are in."
@@ -215,7 +213,3 @@ def prayer_alarms(city: str, country: str, prayer: str, method: int = DEFAULT_ME
         lines.append(f'{name} {hm}{" tomorrow" if tom else ""}, in {h}h {m}m: duration_seconds={secs} message="Time for {name} prayer" repeat=false')
     lines.append(f"Times for {city}, {country} ({tz.key}). Call self.robot.create_reminder once for each line above.")
     return "\n".join(lines)
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio")

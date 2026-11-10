@@ -1,21 +1,18 @@
 """Japanese learning MCP for Stack-chan's English TTS voice: every reply is ASCII romaji, English first then Japanese.
-Tools: japanese_word (live jisho.org lookup, small in-memory cache), japanese_phrase / japanese_phrase /
-japanese_phrase (hf://datasets/MTerryJack/japanese-phrases, Tatoeba eng-jpn CC BY 2.0 FR, DuckDB in memory, no
-downloads kept) and japanese_to_romaji (fugashi + unidic-lite baked into the image). Fails loudly; no fallbacks."""
+Tools: japanese_word (live jisho.org lookup, small in-memory cache), japanese_phrase (hf://datasets/MTerryJack/japanese-phrases, Tatoeba eng-jpn CC BY 2.0 FR, read on demand, nothing
+kept in RAM) and japanese_to_romaji (fugashi + unidic-lite baked into the image). Fails loudly; no fallbacks."""
 
 from __future__ import annotations
 
 import re
-import sys
-import threading
 import time
 
-import duckdb
 import httpx
-from fastmcp import FastMCP
+from app import mcp
+from hf_data import HFTable
 
 from japanese_romaji import has_japanese, kana_to_romaji, to_romaji
-from mcp_tool_log import get_logger, hf_revision, logged, note
+from mcp_tool_log import get_logger, logged, note
 
 REPO = "MTerryJack/japanese-phrases"
 MIN_ROWS = 100_000
@@ -27,38 +24,22 @@ LEVELS = ("beginner", "intermediate")
 U = "Japanese lessons, replies in romaji: say the English, then 'In Japanese:' and the romaji."
 
 log = get_logger("JAPANESE")
-mcp = FastMCP("Japanese")
-_lock = threading.Lock()
-_con: duckdb.DuckDBPyConnection | None = None
-_cache: dict[str, tuple[float, list]] = {}
 
 
-def _load() -> None:
-    global _con
-    t0 = time.monotonic()
+def _check(q) -> None:
     if to_romaji("ありがとうございます") != "arigatou gozaimasu":
         raise RuntimeError("romaji converter self-test failed (fugashi/unidic-lite)")
-    rev = hf_revision(REPO)
-    url = f"hf://datasets/{REPO}@{rev}/data/train.parquet"
-    con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
-    con.execute("LOAD httpfs")
-    con.execute(f"CREATE TABLE t AS SELECT id, english, romaji, topic, level, lower(english) AS le FROM read_parquet('{url}')")
-    rows = con.execute("SELECT count(*) FROM t").fetchone()[0]
+    rows = q("SELECT count(*) FROM t")[0][0]
     if rows < MIN_ROWS:
-        raise RuntimeError(f"{url} has only {rows} rows (expected >= {MIN_ROWS})")
-    bad = con.execute("SELECT count(*) FROM t WHERE NOT regexp_full_match(romaji, '[\\x20-\\x7E]+')").fetchone()[0]
+        raise RuntimeError(f"{REPO} has only {rows} rows (expected >= {MIN_ROWS})")
+    bad = q("SELECT count(*) FROM t WHERE NOT regexp_full_match(romaji, '[\\x20-\\x7E]+')")[0][0]
     if bad:
-        raise RuntimeError(f"{url} has {bad} romaji rows with non-ASCII text")
-    with _lock:
-        _con = con
-    log.info(f"loaded {REPO}@{rev[:12]} rows={rows} ms={(time.monotonic() - t0) * 1000:.0f}")
+        raise RuntimeError(f"{REPO} has {bad} romaji rows with non-ASCII text")
+    log.info(f"{REPO} rows={rows}")
 
 
-def _q(sql: str, params: list) -> list:
-    with _lock:
-        if _con is None:
-            raise RuntimeError("japanese-phrases dataset not loaded")
-        return _con.execute(sql, params).fetchall()
+_q = HFTable(REPO, "Japanese phrases", {"t": "SELECT id, english, romaji, topic, level, lower(english) AS le FROM {src}"}, on_ready=_check).q
+_cache: dict[str, tuple[float, list]] = {}
 
 
 def _say(english: str, romaji: str) -> str:
@@ -216,12 +197,3 @@ def japanese_to_romaji(text: str, english: str | None = None) -> str:
     if english and english.strip():
         return _say(english, ro)
     return f"In Japanese: {ro}{'' if ro[-1:] in '.?!' else '.'}"
-
-
-if __name__ == "__main__":
-    try:
-        _load()
-    except BaseException as e:
-        log.critical(f"startup failed: dataset {REPO} or romaji converter did not load: {type(e).__name__}: {e}")
-        sys.exit(1)
-    mcp.run(transport="stdio", show_banner=False)

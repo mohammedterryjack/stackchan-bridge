@@ -1,18 +1,10 @@
 """Math calculator MCP. Eval restricted to the math module only."""
 from __future__ import annotations
 
-import logging
 import math
-import sys
 
-from fastmcp import FastMCP
+from app import mcp
 
-logger = logging.getLogger("Calculator")
-if sys.platform == "win32":
-    sys.stderr.reconfigure(encoding="utf-8")
-    sys.stdout.reconfigure(encoding="utf-8")
-
-mcp = FastMCP("Calculator")
 _SAFE = {"__builtins__": {}, "math": math}
 
 
@@ -29,7 +21,6 @@ def calculator(python_expression: str) -> str:
         if b in low:
             raise ValueError(f"expression rejected: contains {b!r}; math only")
     result = eval(expr, _SAFE, {})  # noqa: S307 — intentionally restricted globals
-    logger.info("Calculating formula: %s, result: %s", expr, result)
     if isinstance(result, float):
         if result.is_integer() and abs(result) < 1e15:
             return str(int(result))
@@ -37,7 +28,3 @@ def calculator(python_expression: str) -> str:
     if isinstance(result, (int, complex)) and not isinstance(result, bool):
         return str(result)
     raise ValueError(f"result is not a number: {type(result).__name__}")
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)

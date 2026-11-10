@@ -1,22 +1,24 @@
 # Stack-chan MCP bridge
 
-A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, Sufi classics (al-Ghazali, Ibn Arabi, al-Jilani), Hilyat al-Awliya, recipes, Japanese lessons in romaji, live learning (a local Hindsight memory), maps and more. It runs 26 local MCP servers exposing 77 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
+A Docker container that gives an M5Stack Stack-chan (running Xiaozhi firmware, connected to the xiaozhi.me cloud) extra tools over MCP: web search, news, time, prayer times, Quran/Hadith, Tanakh, Rumi, Aesop, hadith commentary, dreams of the Prophet, Sufi classics (al-Ghazali, Ibn Arabi, al-Jilani), Hilyat al-Awliya, recipes, Japanese lessons in romaji, live learning (a local Hindsight memory), maps and more. It runs one local MCP server process (plus the YouTube and arXiv servers) exposing 77 tools. Replies are short, speakable plain text, and each tool call has an 8 second deadline. Errors fail loudly with a spoken message rather than silently falling back.
 
 ## How it works
-`mcp_pipe.py` opens a WebSocket to your xiaozhi.me agent's MCP endpoint and starts every server listed in `mcp_config.json` as a child process (stdio). When you talk to Stack-chan, the Xiaozhi cloud can call these tools and read the result aloud. Tools are only used while someone is talking to the robot.
+`mcp_pipe.py` opens one WebSocket to your xiaozhi.me agent's MCP endpoint per entry in `mcp_config.json` and starts each as a child process (stdio). There are three: `stackchan` (`server.py`, one FastMCP app in `app.py` that every `*_server.py` module registers its tools on), `youtube` (mcp-youtube-transcript) and `arxiv` (arxiv-mcp-server, in its own venv because it needs mcp 1.x); the last two run through `mcp_filter_proxy.py`. When you talk to Stack-chan, the Xiaozhi cloud can call these tools and read the result aloud. Tools are only used while someone is talking to the robot.
 
-## Servers and tools (26 servers, 77 tools)
-- calculator: calculator, more_text (pages through long replies), and the bookmark tools bookmark_continue, bookmark_list, bookmark_set, bookmark_clear (served by mcp_pipe.py on this connection; see Bookmarks below)
+No book text is held in memory: every Hugging Face dataset (Rumi, Aesop, zines, Bahjat, dreams, Sufi classics, Hilya, female awliya, Japanese phrases, gospel, Ethiopian canon) is queried on demand by `hf_data.py`, which points DuckDB views at the remote parquet (pinned to the dataset revision) and reads only the byte ranges a query needs. Only HTTP metadata and parquet footers are cached; file bytes are not (`enable_external_file_cache=false`), DuckDB is capped by `DUCKDB_MEMORY_LIMIT` (default 64MB) and spills to /tmp/duckdb. Each query has a 7 s limit; if Hugging Face is slow or unreachable the tool says so aloud (no fallback). Calls take about 0.6-2 s. (The datasets-server rows/search/filter API was measured too slow for the 8 s deadline: /filter took 15-60 s.)
+
+## Tools (77, grouped by module; all served by `stackchan` unless noted)
+- calculator: calculator, more_text (pages through long replies), and the bookmark tools bookmark_continue, bookmark_list, bookmark_set, bookmark_clear (served by mcp_pipe.py on the stackchan connection; see Bookmarks below)
 
 Reply cap: mcp_pipe.py caps every tool reply at ~800 chars (max 1000), splitting on sentence/verse boundaries with "Part N of M" notes; Stack-chan calls more_text(part=N) to continue.
 
 - web-search: web_search, web_read (DuckDuckGo: 5 min cache, 2 s between searches; on a bot check or dropped connection it stops for 15 min and says 'DuckDuckGo is rate-limiting us, try again in N minutes' instead of retrying)
 - time: time_now, time_convert (city or timezone required, no default)
 - hackernews: hn_top_stories, hn_search, hn_story, hn_user
-- youtube: youtube_transcript, youtube_info
+- youtube (separate server): youtube_transcript, youtube_info
 - youtube-search: youtube_search
 - news: news_headlines (topic, or source such as Simon Willison or Schneier)
-- arxiv: arxiv_search, arxiv_read, arxiv_abstract
+- arxiv (separate server): arxiv_search, arxiv_read, arxiv_abstract
 - zines: zine_search, zine_read
 - prayer-times: prayer_times (today's reply also says which prayer is next and how long until it), prayer_alarms (city and country required, no default)
 - quran-hadith: quran_read, quran_search, hadith_get (no number = random hadith)
@@ -36,11 +38,11 @@ Reply cap: mcp_pipe.py caps every tool reply at ~800 chars (max 1000), splitting
 - ethiopian-canon: ethiopian_read (no chapter = random verse), ethiopian_search (no query = list books) (Ethiopian Orthodox canon books not in the Tanakh or gospel tools, in their source language where possible, which the AI translates or explains: Ge'ez 1 Enoch, Jubilees, Sirach, Wisdom, Baruch, 4 Baruch, 1-3 Meqabyan, Canons of Clement and Acts to Revelation; Amharic EOTC Qalementos, Didesqelya, Tobit, Judith, 1-2 Esdras (Ezra Kale/Sutuel), Letter of Jeremiah, Azariah, Susanna and Bel; English only where no Ge'ez/Amharic exists: Sinodos and its Arabic/Sahidic recensions (Horner), Testament of Our Lord (Kidan stand-in), Gessew (Schodde), Apostolic Constitutions and 85 Canons (Abtelis stand-in), Additions to Esther, Prayer of Manasseh, Psalm 151)
 - maps: map_search, map_nearby, map_distance (OpenStreetMap, keyless)
 
-Bookmarks: every book read tool saves where you stopped, one bookmark per book: quran_read (Quran), hadith_get (hadith collections), tanakh_read (Tanakh), gospel_read, ethiopian_read, rumi_read, aesop_read, bahjat_read, dreams_read, ghazali_read (Ihya), ibnarabi_read (Futuhat), jilani_read (Ghunya), hilya_read, sulami_women_read, safwa_women_read and zine_read. Random/search tools do not move a bookmark. Say "continue reading the Quran" (bookmark_continue reads the next passage through that book's live server), "what am I reading?" (bookmark_list), "set my Rumi bookmark to 1:100" (bookmark_set) or "forget my Hilya bookmark" (bookmark_clear). They live in /data/bookmarks/bookmarks.json on the named Docker volume `stackchan-bookmarks` (stackchan-bridge only), so they survive rebuilds and restarts; writes are atomic under a file lock (bookmarks.py), and the bridge refuses to start if the volume is not writable. `make test` uses a separate smoke-test.json on the same volume and restarts the container once to prove bookmarks persist.
+Bookmarks: every book read tool saves where you stopped, one bookmark per book: quran_read (Quran), hadith_get (hadith collections), tanakh_read (Tanakh), gospel_read, ethiopian_read, rumi_read, aesop_read, bahjat_read, dreams_read, ghazali_read (Ihya), ibnarabi_read (Futuhat), jilani_read (Ghunya), hilya_read, sulami_women_read, safwa_women_read and zine_read. Random/search tools do not move a bookmark. Say "continue reading the Quran" (bookmark_continue reads the next passage through that book's read tool), "what am I reading?" (bookmark_list), "set my Rumi bookmark to 1:100" (bookmark_set) or "forget my Hilya bookmark" (bookmark_clear). They live in /data/bookmarks/bookmarks.json on the named Docker volume `stackchan-bookmarks` (stackchan-bridge only), so they survive rebuilds and restarts; writes are atomic under a file lock (bookmarks.py), and the bridge refuses to start if the volume is not writable. `make test` uses a separate smoke-test.json on the same volume and restarts the container once to prove bookmarks persist.
 
 Tool-list size: Xiaozhi caps the tool list it will accept (undocumented token limit), so descriptions are one or two sentences, random/list variants are folded into read/search (no args = random or list), and mcp_pipe strips titles, null defaults and Optional wrappers from schemas. After this the full list is ~30 KB.
 
-Tool-list logging: mcp_pipe logs each `<< initialize` / `<< tools/list` from Xiaozhi and `>> tools/list reply tools=N bytes=B` per server, so `docker logs stackchan-bridge | grep 'tools/list'` shows what Xiaozhi was offered (about 70 KB for 106 tools across 28 connections). Xiaozhi documents a token cap on the tool list and a per-endpoint connection cap but publishes no numbers; the xiaozhi.me agent console shows them.
+Tool-list logging: mcp_pipe logs each `<< initialize` / `<< tools/list` from Xiaozhi and `>> tools/list reply tools=N bytes=B` per connection, so `docker logs stackchan-bridge | grep 'tools/list'` shows what Xiaozhi was offered (about 27 KB for 77 tools across 3 connections). Xiaozhi documents a token cap on the tool list and a per-endpoint connection cap but publishes no numbers; the xiaozhi.me agent console shows them.
 
 Memory (live learning): the compose service `hindsight` runs the official Hindsight image (ghcr.io/vectorize-io/hindsight:1.2.0, API only, no published ports) on the `stackchan` network; memory_server.py calls its REST API at http://hindsight:8888, bank `mo`. learn_this queues a retain: Hindsight extracts facts with the Mac's native Ollama (qwen2.5-coder:7b at num_ctx 8192, the model already resident, so nothing is evicted) and embeds/reranks them with the local models baked into the image (BAAI/bge-small-en-v1.5, hs-rerank-1; HF_HUB_OFFLINE=1). Learning takes ~15-30 s (longer while other Ollama clients are busy), so learn_this waits up to 6 s and otherwise says it is still learning; learn_status reports pending and failed learning. learn_recall needs no LLM (~0.1 s) and returns the top 3 facts. Memories live in embedded Postgres on the named volume `stackchan-hindsight-data`, so they survive rebuilds and restarts. No fallbacks: memory_server refuses to start if Hindsight is down, raises if Hindsight's LLM health check fails, and surfaces failed retains. `make up` starts hindsight and the bridge; `make test` uses the separate `stackchan-smoke` bank (wiped at the start), learns a fact, recalls it, then restarts both containers and recalls it again. After each learn Hindsight consolidates facts into higher-level observations in the background (another LLM call, ~20-70 s).
 
@@ -48,7 +50,7 @@ Memory viewer: the Hindsight Control Plane runs inside the `hindsight` container
 
 Reflection: learn_reflect queues Hindsight's agentic reflect (it searches memories and observations, then reasons with the 7B), which takes about 25 s to a few minutes, and replies at once ("I'm thinking about that now; ask me for my reflection in a few minutes"). A detached worker (`memory_server.py --reflect-worker`, one per bank, flock-guarded) waits for pending learning/consolidation to settle, runs the reflect and stores the answer or the error in /data/bookmarks/reflections-<bank>.json on the `stackchan-bookmarks` volume (last 10 kept). learn_reflection gives the latest finished answer, "Still thinking about ..., N min so far", or raises the recorded error. A job interrupted by a restart is run again by the next worker. Hindsight's reflect limits are set for the local model: per-call LLM timeout 600 s (the 30 s default is what made the first attempts fail), wall timeout 1800 s, 5 iterations, 4500 context tokens (inside Ollama's 8192), 1024 completion tokens. `make test` starts a reflection on the smoke bank and checks the replies; `make test-reflect` (opt-in, minutes) waits for one to finish.
 
-No API keys are needed: every server uses free, keyless sources.
+No API keys are needed: every tool uses free, keyless sources.
 
 ## Prerequisites
 - Docker with Docker Compose v2 (Docker Desktop on macOS/Windows is fine), plus `git` and `make`. Any always-on computer works; the bridge only makes outgoing connections.
@@ -67,7 +69,7 @@ The first `make setup` creates `.env` from `.env.example` and stops with a messa
 | Command | What it does |
 |---|---|
 | `make setup` / `make run` | check prerequisites and `.env`, build and start the bridge |
-| `make test` | call one tool on every server inside the running bridge (list in `tools/smoke.txt`); prints PASS/FAIL, exits non-zero on any failure |
+| `make test` | call tools from every module inside the running bridge (list in `tools/smoke.txt`); prints PASS/FAIL, exits non-zero on any failure |
 | `make test-web` | opt-in: exactly one DuckDuckGo web search (`tools/smoke-web.txt`); kept out of `make test` so test runs don't trip DuckDuckGo's bot check |
 | `make test-reflect` | opt-in: one memory reflection run to completion on the smoke bank (minutes) |
 | `make logs` | follow the bridge logs (don't paste them publicly without checking for your endpoint) |
@@ -78,17 +80,17 @@ To run a second copy alongside (e.g. a second Stack-chan agent), use another clo
 Then ask Stack-chan something like "what time is it in Tokyo?" or "read Psalm 23".
 
 ## Testing a tool
-`tools/sc_t.py` starts one server inside the running container and calls a tool the way Stack-chan would, printing the reply, size and time taken:
+`tools/sc_t.py` starts one server (`stackchan`, `youtube` or `arxiv`) inside the running container and calls a tool the way Stack-chan would, printing the reply, size and time taken:
 
-    docker exec -i stackchan-bridge python - hackernews list < tools/sc_t.py
-    docker exec -i stackchan-bridge python - time time_now '{"timezone": "Tokyo"}' < tools/sc_t.py
+    docker exec -i stackchan-bridge python - stackchan list < tools/sc_t.py
+    docker exec -i stackchan-bridge python - stackchan time_now '{"timezone": "Tokyo"}' < tools/sc_t.py
 
 The first argument is a server name from `mcp_config.json`; the second is `list` or a tool name; the third is JSON arguments (use `list` to see each tool's parameter names). `tools/sc_chain.py` runs a JSON list of `[tool, args]` calls in one session.
 
 ## Adding, removing or configuring servers
-- Servers are defined in `mcp_config.json` under `mcpServers`: a `command`, `args` and `env` for each. Delete an entry to remove a server.
-- To add your own, write a stdio MCP server (see `tanakh_server.py` for a small FastMCP example), add it to the `COPY` line in the `Dockerfile`, and add an entry to `mcp_config.json`.
-- Third-party servers (web search, YouTube, arXiv, Hacker News) run through `mcp_filter_proxy.py` with a JSON file in `filter_configs/` that limits which tools are exposed, rewrites descriptions, and caps result sizes.
+- Servers are defined in `mcp_config.json` under `mcpServers`: a `command`, `args` and `env` for each (stdio only).
+- To add tools, write a module that does `from app import mcp` and decorates functions with `@mcp.tool` (see `tanakh_server.py`), import it in `server.py` and add it to the `COPY` line in the `Dockerfile`. For a Hugging Face dataset, use `hf_data.HFTable` rather than loading it.
+- Third-party servers (YouTube, arXiv) run through `mcp_filter_proxy.py` with a JSON file in `filter_configs/` that limits which tools are exposed, rewrites descriptions, and caps argument values.
 - `MCP_TOOL_DEADLINE_S` (default 8) sets the per-call deadline.
 - `mcp_config.json` and `filter_configs/` are baked into the image, so rebuild after any change:
 
@@ -123,6 +125,6 @@ The first argument is a server name from `mcp_config.json`; the second is `list`
 - Prayer times: [AlAdhan](https://aladhan.com) API.
 - Maps: [OpenStreetMap](https://www.openstreetmap.org/copyright) data via Nominatim (please respect its usage policy) and routing via the public [OSRM](https://project-osrm.org) demo server. Map data (c) OpenStreetMap contributors, ODbL.
 - Web search: DuckDuckGo. News: Al Jazeera, DW, The Real News Network, Reuters (via Google News, reuters.com only), Google News, Simon Willison, Krebs on Security, Schneier on Security, LWN, 2600 RSS feeds.
-- Third-party MCP servers: duckduckgo-mcp-server, mcp-hn, mcp-youtube-transcript, arxiv-mcp-server. `mcp_pipe.py` is adapted from the Xiaozhi mcp-calculator example pipe.
+- Third-party MCP servers: mcp-youtube-transcript, arxiv-mcp-server. `mcp_pipe.py` is adapted from the Xiaozhi mcp-calculator example pipe.
 
-Debugging: the hadith-commentary, prophet-dreams, sufi-classics, hilyat-al-awliya, gospel and ethiopian-canon servers log one stderr line per tool call (`tool=… args=… ids=[…] ms=… ok|error=…`) and, at startup, the pinned dataset revision and row counts; they exit at startup if the dataset cannot load. See `docker logs stackchan-bridge`.
+Debugging: the dataset tools log one stderr line per tool call (`tool=… args=… ids=[…] ms=… ok|error=…`); at startup `server.py` opens every dataset once and logs `HF_DATA … ready` with its pinned revision and row checks, or an error line if Hugging Face cannot be reached (the other tools keep working). See `docker logs stackchan-bridge`.

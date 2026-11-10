@@ -1,24 +1,19 @@
 """Shared verse-corpus MCP builder for gospel_server.py and ethiopian_server.py: one row per verse from a Hugging Face
-parquet (DuckDB in memory). Tools: {pfx}_read (no chapter = random verse), {pfx}_search (no query = list books). Each call logs one stderr line via
-mcp_tool_log; a failed dataset load exits at startup (no fallback)."""
+parquet, read on demand. Tools: {pfx}_read (no chapter = random verse), {pfx}_search (no query = list books). Each call logs one stderr line via
+mcp_tool_log; an unreachable dataset fails the call aloud (no fallback)."""
 
 from __future__ import annotations
 
-import contextvars
 import re
-import sys
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
-import duckdb
 from fastmcp import FastMCP
+
+from hf_data import HFTable
 
 import bookmarks
 
-from mcp_tool_log import get_logger, hf_revision, logged, note
+from mcp_tool_log import get_logger, logged, note
 
-CALL_TIMEOUT_S = 8.0
 MAX_VERSES = 8
 MAX_CHARS = 1000
 MAX_LIMIT = 5
@@ -39,26 +34,16 @@ class Corpus:
     def __init__(self, name: str, repo: str, pfx: str, books: list[str], aliases: dict[str, str]):
         self.repo, self.pfx, self.books, self.aliases = repo, pfx, books, aliases
         self.log = get_logger(name)
-        self.lock = threading.Lock()
-        self.con: duckdb.DuckDBPyConnection | None = None
-        self.pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix=pfx)
         self.names: dict[str, str] = {}
         self.order: list[tuple[str, str, int, int]] = []
+        self.table = HFTable(repo, name.title(), {"t": lambda src, cols: "SELECT id, book_key, book, chapter, verse, text, source, "
+                             + ("language" if "language" in cols else "'en'") + " AS lang, lower(text) AS lt FROM " + src}, on_ready=self._index)
 
-    def load(self) -> None:
-        t0 = time.monotonic()
-        rev = hf_revision(self.repo)
-        url = f"hf://datasets/{self.repo}@{rev}/data/train.parquet"
-        con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
-        con.execute("LOAD httpfs")
-        cols = [d[0] for d in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{url}')").fetchall()]
-        lang = "language" if "language" in cols else "'en'"
-        con.execute(f"CREATE TABLE t AS SELECT id, book_key, book, chapter, verse, text, source, {lang} AS lang, lower(text) AS lt FROM read_parquet('{url}')")
-        rows = con.execute("SELECT book_key, any_value(book), min(id), count(*), count(DISTINCT chapter) FROM t GROUP BY 1 ORDER BY 3").fetchall()
-        got = [r[0] for r in rows]
-        missing = set(self.books) - set(got)
+    def _index(self, q) -> None:
+        rows = q("SELECT book_key, any_value(book), min(id), count(*), count(DISTINCT chapter) FROM t GROUP BY 1 ORDER BY 3")
+        missing = set(self.books) - {r[0] for r in rows}
         if missing:
-            raise RuntimeError(f"Books missing from {url}: {sorted(missing)}")
+            raise RuntimeError(f"Books missing from {self.repo}: {sorted(missing)}")
         self.order = [(r[0], r[1], r[3], r[4]) for r in rows]
         for bk, b, _, _ in self.order:
             self.names[_k(bk)] = bk
@@ -66,25 +51,13 @@ class Corpus:
             self.names[_k(b.split(" (")[0])] = bk
         for a, bk in self.aliases.items():
             self.names[_k(a)] = bk
-        with self.lock:
-            self.con = con
-        self.log.info(f"loaded {self.repo}@{rev[:12]} rows={sum(r[3] for r in rows)} books={len(rows)} " + " ".join(f"[{bk}]={n}" for bk, _, n, _ in self.order) + f" ms={(time.monotonic() - t0) * 1000:.0f}")
+        self.log.info(f"{self.repo} rows={sum(r[3] for r in rows)} books={len(rows)} " + " ".join(f"[{bk}]={n}" for bk, _, n, _ in self.order))
 
     def q(self, sql: str, params: list) -> list:
-        with self.lock:
-            if self.con is None:
-                raise RuntimeError(f"{self.repo} not loaded")
-            return self.con.execute(sql, params).fetchall()
-
-    def run(self, fn, *args):
-        fut = self.pool.submit(contextvars.copy_context().run, fn, *args)
-        try:
-            return fut.result(timeout=CALL_TIMEOUT_S)
-        except FuturesTimeout:
-            fut.cancel()
-            raise TimeoutError(f"{self.pfx} tool exceeded {CALL_TIMEOUT_S:.0f}s") from None
+        return self.table.q(sql, params)
 
     def book(self, book: str) -> tuple[str, str]:
+        self.table.ensure()
         key = _k(book)
         bk = self.names.get(key)
         if bk is None:
@@ -96,6 +69,7 @@ class Corpus:
         return bk, next(b for k, b, _, _ in self.order if k == bk)
 
     def books_impl(self) -> str:
+        self.table.ensure()
         out = [f"{b} ({ch} ch, {n} v)" for _, b, n, ch in self.order]
         note = f" {self.note}" if getattr(self, "note", "") else ""
         return f"{len(out)} books: " + "; ".join(out) + f". Read with {self.pfx}_read(book, chapter).{note}"
@@ -164,24 +138,16 @@ class Corpus:
             if chapter is None:
                 if verse_start is not None or verse_end is not None:
                     raise ValueError("give the chapter with the verses")
-                return self.run(self.random_impl, book)
+                return self.random_impl(book)
             if not book:
                 raise ValueError(f"give the book with the chapter; books: {self.books_impl()}")
-            return self.run(self.read_impl, book, chapter, verse_start, verse_end)
+            return self.read_impl(book, chapter, verse_start, verse_end)
 
         def search(query: str | None = None, book: str | None = None, limit: int = 3) -> str:
             if not (query or "").strip():
-                return self.run(self.books_impl)
-            return self.run(self.search_impl, query, book, limit)
+                return self.books_impl()
+            return self.search_impl(query, book, limit)
 
         for n, fn in [("read", read), ("search", search)]:
             fn.__name__ = f"{self.pfx}_{n}"
             mcp.tool(name=fn.__name__, description=docs[n])(logged(self.log)(fn))
-
-    def main(self, mcp: FastMCP) -> None:
-        try:
-            self.load()
-        except BaseException as e:
-            self.log.critical(f"startup failed: dataset {self.repo} did not load: {type(e).__name__}: {e}")
-            sys.exit(1)
-        mcp.run(transport="stdio", show_banner=False)

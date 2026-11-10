@@ -1,30 +1,24 @@
 """Prophet dreams MCP: accounts of people who saw the Prophet (saas) in a dream, original Arabic, from
-hf://datasets/MTerryJack/prophet-dreams (DuckDB, in memory). dream_number is per source; dreams_search with no query lists them.
-Every call logs one line to stderr (tool, args, row ids, ms, error) via mcp_tool_log; a failed dataset load exits at startup."""
+hf://datasets/MTerryJack/prophet-dreams (read on demand). dream_number is per source; dreams_search with no query lists them.
+Every call logs one line to stderr (tool, args, row ids, ms, error) via mcp_tool_log; an unreachable dataset fails the call aloud."""
 
 from __future__ import annotations
 
-import contextvars
 import math
 import re
-import sys
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
-import duckdb
-from fastmcp import FastMCP
+from app import mcp
+from hf_data import HFTable
 
 import bookmarks
 
-from mcp_tool_log import get_logger, hf_revision, logged, note
+from mcp_tool_log import get_logger, logged, note
 
 REPO = "MTerryJack/prophet-dreams"
 DEFAULT_SOURCE = "al-Mara'i al-Hisan (Ibn Abi Jamrah)"  # dreams_read without source, kept for compatibility
 MAX_LIMIT = 5
 PAGE_CHARS = 1000
 SNIPPET_CHARS = 160
-CALL_TIMEOUT_S = 8.0
 NOTE = "[Classical Arabic (al-Mara'i text is OCR): translate or explain it for the listener.]"
 # Arabic normalisation (same in SQL and Python): drop tashkeel/tatweel, unify alif, ya, ta marbuta, hamza seats.
 _DIAC = "[\u064B-\u0652\u0670\u0640]"
@@ -50,57 +44,22 @@ EN_AR = {
 }
 
 log = get_logger("PROPHET_DREAMS")
-mcp = FastMCP("ProphetDreams")
-_lock = threading.Lock()
-_con: duckdb.DuckDBPyConnection | None = None
-_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="dreams")
 
 
-def _load() -> None:
-    # ~0.3MB parquet, ~200 rows, pinned to the current HF revision: one in-memory table with a normalised search column.
-    global _con
-    t0 = time.monotonic()
-    rev = hf_revision(REPO)
-    url = f"hf://datasets/{REPO}@{rev}/data/train.parquet"
-    con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
-    con.execute("LOAD httpfs")
-    con.execute(
-        "CREATE TABLE dreams AS SELECT id, source, book_ar, dream_number, covers, topic, ref_ar, text_ar, licence, "
-        + NORM_SQL.format(c="text_ar") + f" AS nt FROM read_parquet('{url}')"
-    )
-    counts = con.execute("SELECT source, count(*) FROM dreams GROUP BY 1 ORDER BY 1").fetchall()
+def _check(q) -> None:
+    counts = q("SELECT source, count(*) FROM dreams GROUP BY 1 ORDER BY 1")
     if not counts:
-        raise RuntimeError(f"Loaded 0 rows from {url}")
+        raise RuntimeError(f"{REPO} has 0 rows")
     if DEFAULT_SOURCE not in dict(counts):
-        raise RuntimeError(f"Default source {DEFAULT_SOURCE!r} missing from {url}")
+        raise RuntimeError(f"Default source {DEFAULT_SOURCE!r} missing from {REPO}")
     unknown = set(dict(counts)) - set(ALIASES)
     if unknown:
         raise RuntimeError(f"Sources without ALIASES entry: {sorted(unknown)}")
-    with _lock:
-        _con = con
-    log.info(f"loaded {REPO}@{rev[:12]} rows={sum(c for _, c in counts)} " + " ".join(f"[{s}]={c}" for s, c in counts) + f" ms={(time.monotonic() - t0) * 1000:.0f}")
+    log.info(f"{REPO} rows={sum(c for _, c in counts)} " + " ".join(f"[{s}]={c}" for s, c in counts))
 
 
-def _conn() -> duckdb.DuckDBPyConnection:
-    with _lock:
-        if _con is None:
-            raise RuntimeError("Dreams dataset not loaded (server started without _load)")
-        return _con
-
-
-def _run(fn, *args):
-    fut = _pool.submit(contextvars.copy_context().run, fn, *args)
-    try:
-        return fut.result(timeout=CALL_TIMEOUT_S)
-    except FuturesTimeout:
-        fut.cancel()
-        raise TimeoutError(f"dreams tool exceeded {CALL_TIMEOUT_S:.0f}s") from None
-
-
-def _q(sql: str, params: list) -> list:
-    con = _conn()
-    with _lock:
-        return con.execute(sql, params).fetchall()
+_q = HFTable(REPO, "dreams of the Prophet", {"dreams": lambda src, cols: "SELECT id, source, book_ar, dream_number, covers, topic, ref_ar, text_ar, licence, "
+             + NORM_SQL.format(c="text_ar") + " AS nt FROM " + src}, on_ready=_check).q
 
 
 def _norm(s: str) -> str:
@@ -243,18 +202,10 @@ def _read_or_random(dream_number: int | None, part: int, source: str | None) -> 
 @mcp.tool(name="dreams_read", description=f"Dreams in which people saw the Prophet (saas), Arabic; translate when speaking: read a dream by number in parts, or a random dream with no number. {SRC}")
 @logged(log)
 def dreams_read(dream_number: int | None = None, part: int = 1, source: str | None = None) -> str:
-    return _run(_read_or_random, dream_number, part, source)
+    return _read_or_random(dream_number, part, source)
 
 
 @mcp.tool(name="dreams_search", description="Dreams of the Prophet (saas): find dreams about a topic or person (Arabic or English words); with no query, list the sources and their dream counts.")
 @logged(log)
 def dreams_search(query: str | None = None, limit: int = 3, source: str | None = None) -> str:
-    return _run(_sources_impl) if not (query or "").strip() else _run(_search_impl, query, limit, source)
-
-if __name__ == "__main__":
-    try:
-        _load()
-    except BaseException as e:
-        log.critical(f"startup failed: dataset {REPO} did not load: {type(e).__name__}: {e}")
-        sys.exit(1)
-    mcp.run(transport="stdio", show_banner=False)
+    return _sources_impl() if not (query or "").strip() else _search_impl(query, limit, source)

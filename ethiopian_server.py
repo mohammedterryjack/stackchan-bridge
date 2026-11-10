@@ -1,10 +1,9 @@
 """Ethiopian canon MCP: the books of the Ethiopian Orthodox Tewahedo canon that are not in the Tanakh or gospel tools.
-One row per verse from hf://datasets/MTerryJack/ethiopian-canon (DuckDB in memory). Sources per row: R. H. Charles 1917
+One row per verse from hf://datasets/MTerryJack/ethiopian-canon (read on demand). Sources per row: R. H. Charles 1917
 (Enoch, Jubilees, PD), World English Bible (deuterocanon, Acts-Revelation, PD), and Beta masaheft Ge'ez texts
 (CC BY-SA 4.0): 1-3 Meqabyan, 4 Baruch, Canons of Clement (untranslated Ge'ez). Tools: ethiopian_books, _read, _search, _random."""
 
-from fastmcp import FastMCP
-
+from app import mcp
 from verse_corpus import Corpus
 
 BOOKS = ["enoch", "jubilees", "tobit", "judith", "esther_additions", "wisdomofsolomon", "sirach", "baruch", "letterofjeremiah", "1esdras", "2esdras",
@@ -33,11 +32,7 @@ NAMES = ("GE'EZ source text: 1 Enoch, Jubilees, Sirach, Wisdom, Baruch, 4 Baruch
          "ENGLISH only where no Ge'ez/Amharic is available: Sinodos (Horner), Testament of Our Lord 1-2 (Kidan stand-in), Gessew (Schodde), Apostolic Constitutions and 85 Apostolic Canons (Greek parallel, Abtelis stand-in), Sinodos Arabic and Sahidic recensions, Additions to Esther, Prayer of Manasseh, Psalm 151")
 c = Corpus("ETHIOPIAN", "MTerryJack/ethiopian-canon", "ethiopian", BOOKS, ALIASES)
 c.note = f"Languages: {NAMES}. Translate Ge'ez and Amharic text when speaking."
-mcp = FastMCP("EthiopianCanon")
 c.register(mcp, {
     "read": "Ethiopian Orthodox canon (Enoch, Jubilees, Meqabyan, Sirach, Qalementos, Sinodos and more; mostly Ge'ez or Amharic, translate when speaking): read by book and chapter, or a random verse with no chapter.",
     "search": "Ethiopian canon: find a topic (Ge'ez/Amharic words for those books, English for the English ones), optionally in one book; with no query, list the books and their languages.",
 })
-
-if __name__ == "__main__":
-    c.main(mcp)

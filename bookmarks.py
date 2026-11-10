@@ -69,24 +69,24 @@ def _zine(pos: str) -> dict:
     return {"id": p}
 
 
-# key: (spoken label, mcp_config server, read tool, aliases, position parser, position help)
+# key: (spoken label, read tool, aliases, position parser, position help)
 BOOKS: dict[str, tuple] = {
-    "quran": ("the Quran", "quran-hadith", "quran_read", ("koran", "qur'an", "quran"), _quran, "surah:ayah, e.g. 2:255"),
-    "hadith": ("Hadith collections", "quran-hadith", "hadith_get", ("hadith", "nawawi", "forty hadith", "sahih"), _hadith, "collection number, e.g. nawawi 5"),
-    "tanakh": ("the Tanakh", "tanakh", "tanakh_read", ("torah", "hebrew bible", "old testament", "tanach"), _verse_ref("book", "chapter", "verse"), "book chapter:verse, e.g. Genesis 3:1"),
-    "gospel": ("the Gospels", "gospel", "gospel_read", ("gospels", "gospel", "injil", "barnabas", "new testament gospels"), _verse_ref("book", "chapter", "verse_start"), "book chapter:verse, e.g. John 3:16"),
-    "ethiopian": ("the Ethiopian canon", "ethiopian-canon", "ethiopian_read", ("ethiopian canon", "enoch", "jubilees", "meqabyan"), _verse_ref("book", "chapter", "verse_start"), "book chapter:verse, e.g. Enoch 1:1"),
-    "rumi": ("Rumi's Mathnawi", "rumi", "rumi_read", ("mathnawi", "masnavi", "rumi"), _nums("book", "verse", defaults={"verse": 1}), "book:verse, e.g. 1:100"),
-    "aesop": ("Aesop's Fables", "aesop", "aesop_read", ("aesop", "fables", "aesop's fables"), _nums("fable_id"), "fable number, e.g. 12"),
-    "bahjat": ("Bahjat al-Nufus (Ibn Abi Jamrah)", "hadith-commentary", "bahjat_read", ("bahja", "bahjat al-nufus", "ibn abi jamrah", "hadith commentary"), _nums("hadith_number", "part", defaults={"part": 1}), "hadith number and part, e.g. 5 part 2"),
-    "dreams": ("dreams of the Prophet", "prophet-dreams", "dreams_read", ("dreams", "prophet dreams", "mara'i", "marai"), _nums("dream_number", "part", defaults={"part": 1}), "dream number and part, e.g. 12 part 1"),
-    "ghazali": ("al-Ghazali's Ihya Ulum al-Din", "sufi-classics", "ghazali_read", ("ihya", "ihya ulum al-din", "ghazali", "al-ghazali"), _nums("chapter", "part", defaults={"part": 1}), "chapter and part, e.g. 3 part 1"),
-    "ibnarabi": ("Ibn Arabi's al-Futuhat al-Makkiyya", "sufi-classics", "ibnarabi_read", ("futuhat", "futuhat al-makkiyya", "ibn arabi", "ibn al-arabi"), _nums("chapter", "part", defaults={"part": 1}), "chapter and part, e.g. 3 part 1"),
-    "jilani": ("al-Jilani's al-Ghunya", "sufi-classics", "jilani_read", ("ghunya", "ghunyat", "jilani", "abd al-qadir"), _nums("chapter", "part", defaults={"part": 1}), "chapter and part, e.g. 3 part 1"),
-    "hilya": ("Hilyat al-Awliya", "hilyat-al-awliya", "hilya_read", ("hilyat al-awliya", "hilya", "abu nuaym", "abu nu'aym"), _nums("person", "part", defaults={"part": 1}, as_str=("person",)), "entry and part, e.g. 5 part 2"),
-    "sulami_women": ("al-Sulami's Dhikr al-Niswa", "female-awliya", "sulami_women_read", ("sulami", "dhikr al-niswa", "sulami women"), _nums("person", "part", defaults={"part": 1}, as_str=("person",)), "entry and part, e.g. 1 part 1"),
-    "safwa_women": ("Sifat al-Safwa women", "female-awliya", "safwa_women_read", ("safwa", "sifat al-safwa", "ibn al-jawzi", "safwa women"), _nums("person", "part", defaults={"part": 1}, as_str=("person",)), "entry and part, e.g. 1 part 1"),
-    "zines": ("hacker zines", "zines", "zine_read", ("zine", "zines", "phrack", "pocorgtfo", "tmpout"), _zine, "a zine id, e.g. phrack-69-07-003"),
+    "quran": ("the Quran", "quran_read", ("koran", "qur'an", "quran"), _quran, "surah:ayah, e.g. 2:255"),
+    "hadith": ("Hadith collections", "hadith_get", ("hadith", "nawawi", "forty hadith", "sahih"), _hadith, "collection number, e.g. nawawi 5"),
+    "tanakh": ("the Tanakh", "tanakh_read", ("torah", "hebrew bible", "old testament", "tanach"), _verse_ref("book", "chapter", "verse"), "book chapter:verse, e.g. Genesis 3:1"),
+    "gospel": ("the Gospels", "gospel_read", ("gospels", "gospel", "injil", "barnabas", "new testament gospels"), _verse_ref("book", "chapter", "verse_start"), "book chapter:verse, e.g. John 3:16"),
+    "ethiopian": ("the Ethiopian canon", "ethiopian_read", ("ethiopian canon", "enoch", "jubilees", "meqabyan"), _verse_ref("book", "chapter", "verse_start"), "book chapter:verse, e.g. Enoch 1:1"),
+    "rumi": ("Rumi's Mathnawi", "rumi_read", ("mathnawi", "masnavi", "rumi"), _nums("book", "verse", defaults={"verse": 1}), "book:verse, e.g. 1:100"),
+    "aesop": ("Aesop's Fables", "aesop_read", ("aesop", "fables", "aesop's fables"), _nums("fable_id"), "fable number, e.g. 12"),
+    "bahjat": ("Bahjat al-Nufus (Ibn Abi Jamrah)", "bahjat_read", ("bahja", "bahjat al-nufus", "ibn abi jamrah", "hadith commentary"), _nums("hadith_number", "part", defaults={"part": 1}), "hadith number and part, e.g. 5 part 2"),
+    "dreams": ("dreams of the Prophet", "dreams_read", ("dreams", "prophet dreams", "mara'i", "marai"), _nums("dream_number", "part", defaults={"part": 1}), "dream number and part, e.g. 12 part 1"),
+    "ghazali": ("al-Ghazali's Ihya Ulum al-Din", "ghazali_read", ("ihya", "ihya ulum al-din", "ghazali", "al-ghazali"), _nums("chapter", "part", defaults={"part": 1}), "chapter and part, e.g. 3 part 1"),
+    "ibnarabi": ("Ibn Arabi's al-Futuhat al-Makkiyya", "ibnarabi_read", ("futuhat", "futuhat al-makkiyya", "ibn arabi", "ibn al-arabi"), _nums("chapter", "part", defaults={"part": 1}), "chapter and part, e.g. 3 part 1"),
+    "jilani": ("al-Jilani's al-Ghunya", "jilani_read", ("ghunya", "ghunyat", "jilani", "abd al-qadir"), _nums("chapter", "part", defaults={"part": 1}), "chapter and part, e.g. 3 part 1"),
+    "hilya": ("Hilyat al-Awliya", "hilya_read", ("hilyat al-awliya", "hilya", "abu nuaym", "abu nu'aym"), _nums("person", "part", defaults={"part": 1}, as_str=("person",)), "entry and part, e.g. 5 part 2"),
+    "sulami_women": ("al-Sulami's Dhikr al-Niswa", "sulami_women_read", ("sulami", "dhikr al-niswa", "sulami women"), _nums("person", "part", defaults={"part": 1}, as_str=("person",)), "entry and part, e.g. 1 part 1"),
+    "safwa_women": ("Sifat al-Safwa women", "safwa_women_read", ("safwa", "sifat al-safwa", "ibn al-jawzi", "safwa women"), _nums("person", "part", defaults={"part": 1}, as_str=("person",)), "entry and part, e.g. 1 part 1"),
+    "zines": ("hacker zines", "zine_read", ("zine", "zines", "phrack", "pocorgtfo", "tmpout"), _zine, "a zine id, e.g. phrack-69-07-003"),
 }
 
 TOOL_SPECS = [
@@ -184,10 +184,10 @@ def resolve(book: str) -> str:
     q = _norm(book)
     if not q:
         raise ValueError("book is required")
-    for k, (label, _, _, aliases, _, _) in BOOKS.items():
+    for k, (label, _, aliases, _, _) in BOOKS.items():
         if q in {_norm(k), _norm(label)} | {_norm(a) for a in aliases}:
             return k
-    hits = [k for k, (label, _, _, aliases, _, _) in BOOKS.items()
+    hits = [k for k, (label, _, aliases, _, _) in BOOKS.items()
             if any(q in _norm(x) or _norm(x) in q for x in (k, label, *aliases) if len(_norm(x)) >= 4)]
     if len(hits) == 1:
         return hits[0]
@@ -219,7 +219,7 @@ def list_text() -> str:
 
 def set_text(book: str, position: str) -> str:
     k = resolve(book)
-    label, _, tool, _, parse, helptext = BOOKS[k]
+    label, tool, _, parse, helptext = BOOKS[k]
     if not (position or "").strip():
         raise ValueError(f"position is required for {label}: {helptext}")
     try:
@@ -252,8 +252,8 @@ def clear_text(book: str) -> str:
     return f"Cleared the bookmark for {BOOKS[k][0]}."
 
 
-def plan_continue(book: str | None) -> tuple[str, str, str, dict, str]:
-    """-> (key, server, tool, args, header) for the read call that continues a book."""
+def plan_continue(book: str | None) -> tuple[str, str, dict, str]:
+    """-> (key, tool, args, header) for the read call that continues a book."""
     data = load()
     if book and book.strip():
         k = resolve(book)
@@ -265,11 +265,11 @@ def plan_continue(book: str | None) -> tuple[str, str, str, dict, str]:
             raise ValueError("there are no bookmarks yet; read a book first")
         k = max(mine)[1]
     v = data[k]
-    label, server, tool, _, _, _ = BOOKS[k]
+    label, tool, _, _, _ = BOOKS[k]
     if v["next"] is None:
         raise ValueError(f"{label} is finished at {v['at']}; use bookmark_set to start somewhere else")
     head = f"Continuing {label} from {v['at']}." if v.get("set") else f"Continuing {label} after {v['at']}."
-    return k, server, tool, dict(v["next"]), head
+    return k, tool, dict(v["next"]), head
 
 
 def handle(tool: str, args: dict) -> str:

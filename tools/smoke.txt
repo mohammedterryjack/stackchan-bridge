@@ -1,110 +1,110 @@
 # server|tool|json args  (used by: make test)
-calculator|calculator|{"python_expression":"2+3*4"}
-time|time_now|{"timezone":"Europe/London"}
-hackernews|hn_top_stories|{"num_stories":2}
+stackchan|calculator|{"python_expression":"2+3*4"}
+stackchan|time_now|{"timezone":"Europe/London"}
+stackchan|hn_top_stories|{"num_stories":2}
 youtube|youtube_info|{"video":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
-news|news_headlines|{"limit":2}
+stackchan|news_headlines|{"limit":2}
 arxiv|arxiv_search|{"query":"robot","max_results":2}
-zines|zine_search|{"query":"hacking","limit":2}
-youtube-search|youtube_search|{"query":"stack-chan","limit":2}
-quran-hadith|quran_read|{"surah":"1","ayah":"1"}
-maps|map_search|{"query":"Big Ben","limit":1}
-tanakh|tanakh_read|{"book":"Genesis","chapter":1,"verse":"1"}
-rumi|rumi_read|{"book":1,"verse":1}
-aesop|aesop_read|{"fable_id":1}
-hadith-commentary|bahjat_read|{"hadith_number":1}
-hadith-commentary|bahjat_search|{"query":"الرؤيا","limit":2}
-hadith-commentary|bahjat_read|{}
-prophet-dreams|dreams_read|{"dream_number":1}
-prophet-dreams|dreams_search|{"query":"جبريل","limit":2}
-prophet-dreams|dreams_read|{}
-prophet-dreams|dreams_read|{"dream_number":1,"source":"Nabhani"}
-prophet-dreams|dreams_search|{"query":"النوم","limit":2,"source":"Bashkuwal"}
-prophet-dreams|dreams_read|{"source":"Sa'adat"}
-prophet-dreams|dreams_search|{}
-prophet-dreams|dreams_read|{"dream_number":1,"source":"Ibn Abi al-Dunya"}
-prophet-dreams|dreams_search|{"query":"water","limit":2}
-prophet-dreams|dreams_read|{"source":"المنامات"}
-hadith-commentary|bahjat_search|{"query":"dream","limit":2}
-sufi-classics|ghazali_contents|{"query":"التوبه"}
-sufi-classics|ghazali_read|{"chapter":1}
-sufi-classics|ghazali_search|{"query":"patience","limit":2}
-sufi-classics|ghazali_read|{}
-sufi-classics|ibnarabi_contents|{"page":2}
-sufi-classics|ibnarabi_read|{"chapter":2,"part":1}
-sufi-classics|ibnarabi_search|{"query":"الروح","limit":2}
-sufi-classics|ibnarabi_read|{}
-sufi-classics|jilani_contents|{}
-sufi-classics|jilani_read|{"chapter":1}
-sufi-classics|jilani_search|{"query":"ramadan","limit":2}
-sufi-classics|jilani_read|{}
-gospel|gospel_search|{}
-gospel|gospel_read|{"book":"John","chapter":3,"verse_start":16,"verse_end":17}
-gospel|gospel_read|{"book":"Barnabas","chapter":1}
-gospel|gospel_search|{"query":"good shepherd","limit":2}
-gospel|gospel_read|{"book":"barnabas"}
-ethiopian-canon|ethiopian_search|{}
-ethiopian-canon|ethiopian_read|{"book":"Enoch","chapter":6,"verse_start":1,"verse_end":3}
-ethiopian-canon|ethiopian_read|{"book":"1 Meqabyan","chapter":1,"verse_start":1,"verse_end":2}
-ethiopian-canon|ethiopian_read|{"book":"Qalementos","chapter":1,"verse_start":1,"verse_end":1}
-ethiopian-canon|ethiopian_search|{"query":"እግዚአብሔር","book":"4 Baruch","limit":1}
-ethiopian-canon|ethiopian_search|{"query":"እግዚአብሔር","book":"enoch","limit":2}
-ethiopian-canon|ethiopian_read|{"book":"Jubilees"}
-ethiopian-canon|ethiopian_read|{"book":"Didesqelya","chapter":1,"verse_start":1,"verse_end":2}
-ethiopian-canon|ethiopian_read|{"book":"Sinodos","chapter":1,"verse_start":1,"verse_end":2}
-ethiopian-canon|ethiopian_read|{"book":"Mashafa Kidan","chapter":1,"verse_start":1,"verse_end":2}
-ethiopian-canon|ethiopian_read|{"book":"Qalementos","chapter":1,"verse_start":1,"verse_end":2}
-ethiopian-canon|ethiopian_read|{"book":"Letter of Jeremiah","chapter":1,"verse_start":1,"verse_end":2}
-ethiopian-canon|ethiopian_search|{"query":"ፍቅር","book":"Romans","limit":2}
-ethiopian-canon|ethiopian_search|{"query":"ኤጲስ","book":"Didascalia","limit":2}
-ethiopian-canon|ethiopian_read|{"book":"Gessew","chapter":1,"verse_start":1,"verse_end":1}
-ethiopian-canon|ethiopian_read|{"book":"Apostolic Canons","chapter":1,"verse_start":1,"verse_end":1}
-ethiopian-canon|ethiopian_read|{"book":"Arabic Sinodos","chapter":1,"verse_start":1,"verse_end":1}
-ethiopian-canon|ethiopian_search|{"query":"bishop","book":"Apostolic Constitutions","limit":2}
-ethiopian-canon|ethiopian_read|{"book":"Tobit","chapter":1,"verse_start":1,"verse_end":1}
-ethiopian-canon|ethiopian_search|{"query":"ጴጥሮስ","book":"Acts","limit":2}
-ethiopian-canon|ethiopian_read|{"book":"didesqelya","chapter":1,"verse_start":1,"verse_end":2}
-ethiopian-canon|ethiopian_search|{"query":"ቀሌምንጦስ","book":"qalementos","limit":2}
-hilyat-al-awliya|hilya_people|{"query":"Bishr al-Hafi"}
-hilyat-al-awliya|hilya_people|{"page":2}
-hilyat-al-awliya|hilya_read|{"person":"Hasan al-Basri"}
-hilyat-al-awliya|hilya_read|{"person":"2","part":2}
-hilyat-al-awliya|hilya_search|{"query":"Fudayl zuhd","limit":2}
-hilyat-al-awliya|hilya_search|{"query":"Rabia","limit":2}
-hilyat-al-awliya|hilya_read|{}
-female-awliya|sulami_women_people|{"query":"Rabia"}
-female-awliya|sulami_women_read|{"person":"Rabia"}
-female-awliya|sulami_women_search|{"query":"zuhd","limit":2}
-female-awliya|sulami_women_read|{}
-female-awliya|safwa_women_people|{"query":"Rabia"}
-female-awliya|safwa_women_read|{"person":"Rabia","part":1}
-female-awliya|safwa_women_search|{"query":"الصبر","limit":2}
-female-awliya|safwa_women_read|{}
-habib-omar|habib_omar_latest|{"limit":3}
-habib-omar|habib_omar_latest|{"source":"news","limit":2}
-habib-omar|habib_omar_latest|{"source":"muwasala","limit":2}
-habib-omar|habib_omar_latest|{"source":"telegram","limit":3}
-habib-omar|habib_omar_latest|{"source":"youtube","limit":2}
-habib-omar|habib_omar_read|{"index":1,"source":"news"}
-habib-omar|habib_omar_read|{"index":1,"part":1}
-recipes|recipe_suggest|{}
-recipes|recipe_suggest|{"ingredient":"chicken","cuisine":"Indian"}
-recipes|recipe_search|{"name":"lasagne"}
-recipes|recipe_search|{"ingredient":"salmon"}
-recipes|recipe_read|{"recipe":"52772","part":1}
-recipes|recipe_ingredients|{"recipe":"Teriyaki Chicken Casserole"}
-japanese|japanese_word|{"english":"water"}
-japanese|japanese_word|{"english":"cat","limit":2}
-japanese|japanese_phrase|{}
-japanese|japanese_phrase|{"topic":"food","level":"beginner"}
-japanese|japanese_phrase|{"query":"thank you","limit":2}
-japanese|japanese_phrase|{"query":"where station"}
-japanese|japanese_phrase|{}
-japanese|japanese_to_romaji|{"text":"駅はどこですか？","english":"Where is the station?"}
+stackchan|zine_search|{"query":"hacking","limit":2}
+stackchan|youtube_search|{"query":"stack-chan","limit":2}
+stackchan|quran_read|{"surah":"1","ayah":"1"}
+stackchan|map_search|{"query":"Big Ben","limit":1}
+stackchan|tanakh_read|{"book":"Genesis","chapter":1,"verse":"1"}
+stackchan|rumi_read|{"book":1,"verse":1}
+stackchan|aesop_read|{"fable_id":1}
+stackchan|bahjat_read|{"hadith_number":1}
+stackchan|bahjat_search|{"query":"الرؤيا","limit":2}
+stackchan|bahjat_read|{}
+stackchan|dreams_read|{"dream_number":1}
+stackchan|dreams_search|{"query":"جبريل","limit":2}
+stackchan|dreams_read|{}
+stackchan|dreams_read|{"dream_number":1,"source":"Nabhani"}
+stackchan|dreams_search|{"query":"النوم","limit":2,"source":"Bashkuwal"}
+stackchan|dreams_read|{"source":"Sa'adat"}
+stackchan|dreams_search|{}
+stackchan|dreams_read|{"dream_number":1,"source":"Ibn Abi al-Dunya"}
+stackchan|dreams_search|{"query":"water","limit":2}
+stackchan|dreams_read|{"source":"المنامات"}
+stackchan|bahjat_search|{"query":"dream","limit":2}
+stackchan|ghazali_contents|{"query":"التوبه"}
+stackchan|ghazali_read|{"chapter":1}
+stackchan|ghazali_search|{"query":"patience","limit":2}
+stackchan|ghazali_read|{}
+stackchan|ibnarabi_contents|{"page":2}
+stackchan|ibnarabi_read|{"chapter":2,"part":1}
+stackchan|ibnarabi_search|{"query":"الروح","limit":2}
+stackchan|ibnarabi_read|{}
+stackchan|jilani_contents|{}
+stackchan|jilani_read|{"chapter":1}
+stackchan|jilani_search|{"query":"ramadan","limit":2}
+stackchan|jilani_read|{}
+stackchan|gospel_search|{}
+stackchan|gospel_read|{"book":"John","chapter":3,"verse_start":16,"verse_end":17}
+stackchan|gospel_read|{"book":"Barnabas","chapter":1}
+stackchan|gospel_search|{"query":"good shepherd","limit":2}
+stackchan|gospel_read|{"book":"barnabas"}
+stackchan|ethiopian_search|{}
+stackchan|ethiopian_read|{"book":"Enoch","chapter":6,"verse_start":1,"verse_end":3}
+stackchan|ethiopian_read|{"book":"1 Meqabyan","chapter":1,"verse_start":1,"verse_end":2}
+stackchan|ethiopian_read|{"book":"Qalementos","chapter":1,"verse_start":1,"verse_end":1}
+stackchan|ethiopian_search|{"query":"እግዚአብሔር","book":"4 Baruch","limit":1}
+stackchan|ethiopian_search|{"query":"እግዚአብሔር","book":"enoch","limit":2}
+stackchan|ethiopian_read|{"book":"Jubilees"}
+stackchan|ethiopian_read|{"book":"Didesqelya","chapter":1,"verse_start":1,"verse_end":2}
+stackchan|ethiopian_read|{"book":"Sinodos","chapter":1,"verse_start":1,"verse_end":2}
+stackchan|ethiopian_read|{"book":"Mashafa Kidan","chapter":1,"verse_start":1,"verse_end":2}
+stackchan|ethiopian_read|{"book":"Qalementos","chapter":1,"verse_start":1,"verse_end":2}
+stackchan|ethiopian_read|{"book":"Letter of Jeremiah","chapter":1,"verse_start":1,"verse_end":2}
+stackchan|ethiopian_search|{"query":"ፍቅር","book":"Romans","limit":2}
+stackchan|ethiopian_search|{"query":"ኤጲስ","book":"Didascalia","limit":2}
+stackchan|ethiopian_read|{"book":"Gessew","chapter":1,"verse_start":1,"verse_end":1}
+stackchan|ethiopian_read|{"book":"Apostolic Canons","chapter":1,"verse_start":1,"verse_end":1}
+stackchan|ethiopian_read|{"book":"Arabic Sinodos","chapter":1,"verse_start":1,"verse_end":1}
+stackchan|ethiopian_search|{"query":"bishop","book":"Apostolic Constitutions","limit":2}
+stackchan|ethiopian_read|{"book":"Tobit","chapter":1,"verse_start":1,"verse_end":1}
+stackchan|ethiopian_search|{"query":"ጴጥሮስ","book":"Acts","limit":2}
+stackchan|ethiopian_read|{"book":"didesqelya","chapter":1,"verse_start":1,"verse_end":2}
+stackchan|ethiopian_search|{"query":"ቀሌምንጦስ","book":"qalementos","limit":2}
+stackchan|hilya_people|{"query":"Bishr al-Hafi"}
+stackchan|hilya_people|{"page":2}
+stackchan|hilya_read|{"person":"Hasan al-Basri"}
+stackchan|hilya_read|{"person":"2","part":2}
+stackchan|hilya_search|{"query":"Fudayl zuhd","limit":2}
+stackchan|hilya_search|{"query":"Rabia","limit":2}
+stackchan|hilya_read|{}
+stackchan|sulami_women_people|{"query":"Rabia"}
+stackchan|sulami_women_read|{"person":"Rabia"}
+stackchan|sulami_women_search|{"query":"zuhd","limit":2}
+stackchan|sulami_women_read|{}
+stackchan|safwa_women_people|{"query":"Rabia"}
+stackchan|safwa_women_read|{"person":"Rabia","part":1}
+stackchan|safwa_women_search|{"query":"الصبر","limit":2}
+stackchan|safwa_women_read|{}
+stackchan|habib_omar_latest|{"limit":3}
+stackchan|habib_omar_latest|{"source":"news","limit":2}
+stackchan|habib_omar_latest|{"source":"muwasala","limit":2}
+stackchan|habib_omar_latest|{"source":"telegram","limit":3}
+stackchan|habib_omar_latest|{"source":"youtube","limit":2}
+stackchan|habib_omar_read|{"index":1,"source":"news"}
+stackchan|habib_omar_read|{"index":1,"part":1}
+stackchan|recipe_suggest|{}
+stackchan|recipe_suggest|{"ingredient":"chicken","cuisine":"Indian"}
+stackchan|recipe_search|{"name":"lasagne"}
+stackchan|recipe_search|{"ingredient":"salmon"}
+stackchan|recipe_read|{"recipe":"52772","part":1}
+stackchan|recipe_ingredients|{"recipe":"Teriyaki Chicken Casserole"}
+stackchan|japanese_word|{"english":"water"}
+stackchan|japanese_word|{"english":"cat","limit":2}
+stackchan|japanese_phrase|{}
+stackchan|japanese_phrase|{"topic":"food","level":"beginner"}
+stackchan|japanese_phrase|{"query":"thank you","limit":2}
+stackchan|japanese_phrase|{"query":"where station"}
+stackchan|japanese_phrase|{}
+stackchan|japanese_to_romaji|{"text":"駅はどこですか？","english":"Where is the station?"}
 # bookmarks (smoke file /data/bookmarks/smoke-test.json; real bookmarks untouched): record, restart, continue
 bookmarks|bookmark_clear|{"book":"all"}
-aesop|aesop_read|{"fable_id":1}
-hilyat-al-awliya|hilya_read|{"person":"1","part":1}
+stackchan|aesop_read|{"fable_id":1}
+stackchan|hilya_read|{"person":"1","part":1}
 bookmarks|bookmark_set|{"book":"Quran","position":"2:255"}
 bookmarks|bookmark_list|{}
 !restart||
@@ -120,34 +120,34 @@ bookmarks|bookmark_continue|{"book":"Tanakh","_expect":"Genesis 3:"}
 bookmarks|bookmark_clear|{"book":"tanakh"}
 # memory (Hindsight; smoke bank stackchan-smoke, Mo's bank untouched): learn, recall, survive restarts of bridge and hindsight
 hindsight|reset|{}
-memory|learn_status|{}
-memory|learn_recall|{"topic":"What is my favourite Japanese snack?","_expect":"haven't learnt"}
-memory|learn_this|{"fact":"My favourite Japanese snack is matcha Kit Kat."}
+stackchan|learn_status|{}
+stackchan|learn_recall|{"topic":"What is my favourite Japanese snack?","_expect":"haven't learnt"}
+stackchan|learn_this|{"fact":"My favourite Japanese snack is matcha Kit Kat."}
 hindsight|wait|{"max_s":300}
-memory|learn_recall|{"topic":"What is my favourite Japanese snack?","_expect":"Kit Kat"}
-memory|learn_status|{}
+stackchan|learn_recall|{"topic":"What is my favourite Japanese snack?","_expect":"Kit Kat"}
+stackchan|learn_status|{}
 !restart|stackchan-hindsight|
 hindsight|wait|{"max_s":180}
 !restart||
-memory|learn_recall|{"topic":"Japanese snack","_expect":"Kit Kat"}
+stackchan|learn_recall|{"topic":"Japanese snack","_expect":"Kit Kat"}
 # memory reflection (background): start one on the smoke bank and check the status reply; make test-reflect waits for completion
-memory|learn_reflection|{"question":"never asked xyz","_expect":"haven't been asked"}
-memory|learn_reflect|{"question":"What snack should I bring Mo as a gift?","_expect":"thinking about"}
-memory|learn_reflection|{"question":"snack","_expect":"snack"}
-rumi|rumi_read|{}
-aesop|aesop_read|{}
-quran-hadith|hadith_get|{}
-news|news_headlines|{"source":"schneier","limit":2}
-news|news_headlines|{"source":"simon willison","limit":2}
-japanese|japanese_phrase|{"topic":"food"}
-japanese|japanese_phrase|{"query":"thank you"}
-prophet-dreams|dreams_search|{}
-gospel|gospel_read|{}
-ethiopian-canon|ethiopian_search|{}
-sufi-classics|ghazali_read|{}
-hilyat-al-awliya|hilya_read|{}
-hadith-commentary|bahjat_read|{}
-female-awliya|safwa_women_read|{}
-tanakh|tanakh_read|{}
-tanakh|tanakh_read|{"book":"Psalms","chapter":23}
-tanakh|tanakh_read|{"book":"Isaiah"}
+stackchan|learn_reflection|{"question":"never asked xyz","_expect":"haven't been asked"}
+stackchan|learn_reflect|{"question":"What snack should I bring Mo as a gift?","_expect":"thinking about"}
+stackchan|learn_reflection|{"question":"snack","_expect":"snack"}
+stackchan|rumi_read|{}
+stackchan|aesop_read|{}
+stackchan|hadith_get|{}
+stackchan|news_headlines|{"source":"schneier","limit":2}
+stackchan|news_headlines|{"source":"simon willison","limit":2}
+stackchan|japanese_phrase|{"topic":"food"}
+stackchan|japanese_phrase|{"query":"thank you"}
+stackchan|dreams_search|{}
+stackchan|gospel_read|{}
+stackchan|ethiopian_search|{}
+stackchan|ghazali_read|{}
+stackchan|hilya_read|{}
+stackchan|bahjat_read|{}
+stackchan|safwa_women_read|{}
+stackchan|tanakh_read|{}
+stackchan|tanakh_read|{"book":"Psalms","chapter":23}
+stackchan|tanakh_read|{"book":"Isaiah"}

@@ -1,26 +1,20 @@
 """Female awliya MCP: al-Sulami Dhikr al-Niswa and Ibn al-Jawzi Sifat al-Safwa (women), original Arabic, from
-hf://datasets/MTerryJack/female-awliya (OpenITI-derived, CC BY-NC-SA 4.0; DuckDB in memory, no downloads kept).
+hf://datasets/MTerryJack/female-awliya (OpenITI-derived, CC BY-NC-SA 4.0; read on demand, nothing kept in RAM).
 Tools: sulami_women_people/read/search/random and safwa_women_people/read/search/random. Each call logs via
-mcp_tool_log; a failed dataset load exits at startup. Replies are short parts (~800 chars) for spoken audio."""
+mcp_tool_log; an unreachable dataset fails the call aloud. Replies are short parts (~800 chars) for spoken audio."""
 
 from __future__ import annotations
 
-import contextvars
 import re
-import sys
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
-import duckdb
-from fastmcp import FastMCP
+from app import mcp
+from hf_data import HFTable
 
 import bookmarks
 
-from mcp_tool_log import get_logger, hf_revision, logged, note
+from mcp_tool_log import get_logger, logged, note
 
 REPO = "MTerryJack/female-awliya"
-CALL_TIMEOUT_S = 8.0
 MAX_LIMIT = 5
 PEOPLE_PAGE = 40
 SNIPPET_CHARS = 180
@@ -70,52 +64,22 @@ BOOKS = {
 H = "Text is classical Arabic: explain or translate it in the user's language. Replies are short parts for spoken audio; call again with part=N+1 for more."
 
 log = get_logger("FEMALE_AWLIYA")
-mcp = FastMCP("FemaleAwliya")
-_lock = threading.Lock()
-_con: duckdb.DuckDBPyConnection | None = None
-_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="fawliya")
 
 
-def _load() -> None:
-    global _con
-    t0 = time.monotonic()
-    rev = hf_revision(REPO)
-    url = f"hf://datasets/{REPO}@{rev}/data/train.parquet"
-    con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
-    con.execute("LOAD httpfs")
-    con.execute(
-        "CREATE TABLE t AS SELECT id, book_key, book, book_ar, author, number, name_ar, part, text_ar, "
-        + NORM_SQL.format(c="text_ar") + " AS nt, " + NORM_SQL.format(c="name_ar") + f" AS nn FROM read_parquet('{url}')"
-    )
-    rows = con.execute("SELECT count(*) FROM t").fetchone()[0]
+def _check(q) -> None:
+    rows = q("SELECT count(*) FROM t")[0][0]
     for bk, meta in BOOKS.items():
-        ents = con.execute("SELECT count(DISTINCT number) FROM t WHERE book_key = ?", [bk]).fetchone()[0]
+        ents = q("SELECT count(DISTINCT number) FROM t WHERE book_key = ?", [bk])[0][0]
         if ents < meta["min"]:
-            raise RuntimeError(f"{url} book {bk} has only {ents} entries (expected >= {meta['min']})")
-    rabia = con.execute(
-        "SELECT count(DISTINCT book_key || '-' || cast(number as varchar)) FROM t WHERE contains(nn, 'رابعه')"
-    ).fetchone()[0]
+            raise RuntimeError(f"{REPO} book {bk} has only {ents} entries (expected >= {meta['min']})")
+    rabia = q("SELECT count(DISTINCT book_key || '-' || cast(number as varchar)) FROM t WHERE contains(nn, 'رابعه')")[0][0]
     if rabia < 2:
-        raise RuntimeError(f"{url} is missing Rabia entries (found {rabia} distinct biographies containing رابعه)")
-    with _lock:
-        _con = con
-    log.info(f"loaded {REPO}@{rev[:12]} rows={rows} rabia_bios={rabia} ms={(time.monotonic() - t0) * 1000:.0f}")
+        raise RuntimeError(f"{REPO} is missing Rabia entries (found {rabia} distinct biographies containing رابعه)")
+    log.info(f"{REPO} rows={rows} rabia_bios={rabia}")
 
 
-def _q(sql: str, params: list) -> list:
-    with _lock:
-        if _con is None:
-            raise RuntimeError("female-awliya dataset not loaded")
-        return _con.execute(sql, params).fetchall()
-
-
-def _run(fn, *args):
-    fut = _pool.submit(contextvars.copy_context().run, fn, *args)
-    try:
-        return fut.result(timeout=CALL_TIMEOUT_S)
-    except FuturesTimeout:
-        fut.cancel()
-        raise TimeoutError(f"female-awliya tool exceeded {CALL_TIMEOUT_S:.0f}s") from None
+_q = HFTable(REPO, "women saints", {"t": lambda src, cols: "SELECT id, book_key, book, book_ar, author, number, name_ar, part, text_ar, "
+             + NORM_SQL.format(c="text_ar") + " AS nt, " + NORM_SQL.format(c="name_ar") + " AS nn FROM " + src}, on_ready=_check).q
 
 
 def _norm(s: str) -> str:
@@ -277,13 +241,13 @@ def _register(book: str) -> None:
     name = A.split(":")[0]
 
     def people(query: str | None = None, page: int = 1) -> str:
-        return _run(_people_impl, book, query, page)
+        return _people_impl(book, query, page)
 
     def read(person: str | None = None, part: int = 1) -> str:
-        return _run(_random_impl, book) if not person else _run(_read_impl, book, person, part, True)
+        return _random_impl(book) if not person else _read_impl(book, person, part, True)
 
     def search(query: str, limit: int = 3) -> str:
-        return _run(_search_impl, book, query, limit)
+        return _search_impl(book, query, limit)
 
     for fn, desc in [(people, f"{name}: list the women saints, optionally filtered by name, e.g. Rabia."),
                      (read, f"{name} (Arabic; translate when speaking): read a woman saint's biography by entry number or name, in parts, or a random passage with no person."),
@@ -294,12 +258,3 @@ def _register(book: str) -> None:
 
 for _bk in BOOKS:
     _register(_bk)
-
-
-if __name__ == "__main__":
-    try:
-        _load()
-    except BaseException as e:
-        log.critical(f"startup failed: dataset {REPO} did not load: {type(e).__name__}: {e}")
-        sys.exit(1)
-    mcp.run(transport="stdio", show_banner=False)

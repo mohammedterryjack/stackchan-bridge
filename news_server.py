@@ -6,9 +6,7 @@ import urllib.parse
 import xml.etree.ElementTree as ET
 
 import httpx
-from fastmcp import FastMCP
-
-mcp = FastMCP("News")
+from app import mcp
 
 TOP_FEEDS = [
     ("Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml"),
@@ -128,7 +126,3 @@ def news_headlines(topic: str | None = None, source: str | None = None, limit: i
     feeds = [[dict(it, title=f"{name}: {it['title']}") for it in _source_items(name, url)] for name, url in TOP_FEEDS]
     mixed = [it for group in zip(*feeds) for it in group]
     return _format("Top headlines from Al Jazeera, DW, Real News and Reuters", mixed, limit, summary=True)
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)

@@ -8,7 +8,7 @@ import urllib.parse
 from collections import OrderedDict
 
 import httpx
-from fastmcp import FastMCP
+from app import mcp
 
 import bookmarks
 
@@ -19,8 +19,6 @@ TIMEOUT = httpx.Timeout(connect=3, read=5, write=3, pool=3)
 HDR = {"User-Agent": "stackchan-tanakh/1.0"}
 CACHE_MAX = 64
 _cache: OrderedDict[str, dict] = OrderedDict()
-
-mcp = FastMCP("Tanakh")
 
 
 def _clean(t: str) -> str:
@@ -166,7 +164,3 @@ def tanakh_search(query: str, limit: int = 3) -> str:
     if not lines:
         return f"No Tanakh verses found for {q!r}."
     return "\n".join(lines)
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)

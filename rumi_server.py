@@ -1,77 +1,19 @@
-"""Rumi Mathnawi MCP: DuckDB over hf://datasets/MTerryJack/rumi-mathnawi (Nicholson English, Books I-VI)."""
+"""Rumi Mathnawi MCP: on-demand reads of hf://datasets/MTerryJack/rumi-mathnawi (Nicholson English, Books I-VI)."""
 from __future__ import annotations
 
 import re
-import threading
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
-import duckdb
-from fastmcp import FastMCP
+from app import mcp
+from hf_data import HFTable
 
 import bookmarks
 
-DATASET_PARQUET = "hf://datasets/MTerryJack/rumi-mathnawi/data/train.parquet"
 BOOKS = (1, 2, 3, 4, 5, 6)
 MAX_LIMIT = 5
 PAGE_CHARS = 1400
 SNIPPET_CHARS = 160
-CALL_TIMEOUT_S = 8.0
-LOAD_TIMEOUT_S = 60.0
 
-mcp = FastMCP("Rumi")
-
-_lock = threading.Lock()
-_con: duckdb.DuckDBPyConnection | None = None
-_ready = threading.Event()
-_load_error: BaseException | None = None
-_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="rumi")
-
-
-def _load() -> None:
-    # Whole dataset is ~2MB parquet (~5.7k passages): one bounded in-memory table.
-    global _con, _load_error
-    try:
-        con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
-        con.execute("LOAD httpfs")
-        con.execute(f"CREATE TABLE rumi AS SELECT book, section, verse_start, verse_end, text_en FROM read_parquet('{DATASET_PARQUET}')")
-        n = con.execute("SELECT count(*) FROM rumi").fetchone()[0]
-        if n < 1:
-            raise RuntimeError(f"Loaded 0 rows from {DATASET_PARQUET}")
-        with _lock:
-            _con = con
-    except BaseException as e:
-        _load_error = e
-    finally:
-        _ready.set()
-
-
-threading.Thread(target=_load, name="rumi-load", daemon=True).start()
-
-
-def _conn() -> duckdb.DuckDBPyConnection:
-    if not _ready.wait(timeout=LOAD_TIMEOUT_S):
-        raise RuntimeError(f"Rumi dataset load still running after {LOAD_TIMEOUT_S:.0f}s")
-    if _load_error is not None:
-        raise RuntimeError(f"Rumi dataset load failed: {_load_error}") from _load_error
-    with _lock:
-        if _con is None:
-            raise RuntimeError("Rumi connection missing after load")
-        return _con
-
-
-def _run(fn, *args):
-    fut = _pool.submit(fn, *args)
-    try:
-        return fut.result(timeout=CALL_TIMEOUT_S)
-    except FuturesTimeout:
-        fut.cancel()
-        raise TimeoutError(f"rumi tool exceeded {CALL_TIMEOUT_S:.0f}s") from None
-
-
-def _q(sql: str, params: list) -> list:
-    con = _conn()
-    with _lock:
-        return con.execute(sql, params).fetchall()
+_q = HFTable("MTerryJack/rumi-mathnawi", "Rumi's Mathnawi", {"rumi": "SELECT book, section, verse_start, verse_end, text_en FROM {src}"}).q
 
 
 def _ref(book: int, a: int, b: int) -> str:
@@ -185,12 +127,9 @@ def _read_or_random(book: int | None, verse: int | None, section: str | None) ->
 
 @mcp.tool(name="rumi_read", description="Rumi's Mathnawi: read a passage by book (1-6) and verse or section title, or a random passage when no book is given ('read me some Rumi').")
 def rumi_read(book: int | None = None, verse: int | None = None, section: str | None = None) -> str:
-    return _run(_read_or_random, book, verse, section)
+    return _read_or_random(book, verse, section)
 
 
 @mcp.tool(name="rumi_search", description="Rumi's Mathnawi: find passages on a theme or phrase, e.g. 'Rumi on love'.")
 def rumi_search(query: str, limit: int = 3) -> str:
-    return _run(_search_impl, query, limit)
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)
+    return _search_impl(query, limit)

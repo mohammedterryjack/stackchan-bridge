@@ -17,7 +17,7 @@ from collections import OrderedDict
 from urllib.parse import parse_qs, unquote, urlparse
 
 import httpx
-from fastmcp import FastMCP
+from app import mcp
 
 from mcp_tool_log import get_logger
 
@@ -37,7 +37,6 @@ STATE_FILE = os.environ.get("DDG_STATE_FILE", "/tmp/stackchan-ddg.json")
 log = get_logger("WEB_SEARCH")
 _cache: OrderedDict[tuple, tuple[float, object]] = OrderedDict()
 
-mcp = FastMCP("WebSearch")
 _last_urls: list[str] = []  # in-memory only: URLs from the most recent web_search
 
 
@@ -231,7 +230,3 @@ def web_read(url: str, max_length: int = DEFAULT_FETCH) -> str:
         raise RuntimeError("empty body")
     _cache_put(key, text)
     return text
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)

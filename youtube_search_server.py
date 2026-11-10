@@ -5,11 +5,9 @@ import json
 import re
 
 import httpx
-from fastmcp import FastMCP
+from app import mcp
 
 TIMEOUT = httpx.Timeout(connect=2.0, read=5.0, write=2.0, pool=2.0)
-mcp = FastMCP("YouTubeSearch")
-
 
 def _walk(o, out):
     if isinstance(o, dict):
@@ -58,7 +56,3 @@ def youtube_search(query: str, limit: int = 3) -> str:
     for v in vids[:limit]:
         lines.append(f"{_text(v.get('title'))}, {_text(v.get('ownerText'))}, {_text(v.get('lengthText')) or 'live'} (video {v['videoId']})")
     return "\n".join(lines)
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)

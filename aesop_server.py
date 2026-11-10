@@ -1,75 +1,17 @@
-"""Aesop's Fables MCP: DuckDB over hf://datasets/MTerryJack/aesop-fables (Townsend translation, 313 fables)."""
+"""Aesop's Fables MCP: on-demand reads of hf://datasets/MTerryJack/aesop-fables (Townsend translation, 313 fables)."""
 from __future__ import annotations
 
 import re
-import threading
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
-import duckdb
-from fastmcp import FastMCP
+from app import mcp
+from hf_data import HFTable
 
 import bookmarks
 
-DATASET_PARQUET = "hf://datasets/MTerryJack/aesop-fables/data/train.parquet"
 MAX_LIMIT = 5
 SNIPPET_CHARS = 160
-CALL_TIMEOUT_S = 8.0
-LOAD_TIMEOUT_S = 60.0
 
-mcp = FastMCP("Aesop")
-
-_lock = threading.Lock()
-_con: duckdb.DuckDBPyConnection | None = None
-_ready = threading.Event()
-_load_error: BaseException | None = None
-_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="aesop")
-
-
-def _load() -> None:
-    # Whole dataset is ~100KB parquet (313 fables): one bounded in-memory table.
-    global _con, _load_error
-    try:
-        con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
-        con.execute("LOAD httpfs")
-        con.execute(f"CREATE TABLE aesop AS SELECT id, title, text, moral FROM read_parquet('{DATASET_PARQUET}')")
-        n = con.execute("SELECT count(*) FROM aesop").fetchone()[0]
-        if n < 1:
-            raise RuntimeError(f"Loaded 0 rows from {DATASET_PARQUET}")
-        with _lock:
-            _con = con
-    except BaseException as e:
-        _load_error = e
-    finally:
-        _ready.set()
-
-
-threading.Thread(target=_load, name="aesop-load", daemon=True).start()
-
-
-def _conn() -> duckdb.DuckDBPyConnection:
-    if not _ready.wait(timeout=LOAD_TIMEOUT_S):
-        raise RuntimeError(f"Aesop dataset load still running after {LOAD_TIMEOUT_S:.0f}s")
-    if _load_error is not None:
-        raise RuntimeError(f"Aesop dataset load failed: {_load_error}") from _load_error
-    with _lock:
-        if _con is None:
-            raise RuntimeError("Aesop connection missing after load")
-        return _con
-
-
-def _run(fn, *args):
-    fut = _pool.submit(fn, *args)
-    try:
-        return fut.result(timeout=CALL_TIMEOUT_S)
-    except FuturesTimeout:
-        fut.cancel()
-        raise TimeoutError(f"aesop tool exceeded {CALL_TIMEOUT_S:.0f}s") from None
-
-
-def _q(sql: str, params: list) -> list:
-    con = _conn()
-    with _lock:
-        return con.execute(sql, params).fetchall()
+_q = HFTable("MTerryJack/aesop-fables", "Aesop's fables", {"aesop": "SELECT id, title, text, moral FROM {src}"}).q
 
 
 def _speak(text: str) -> str:
@@ -161,12 +103,9 @@ def _read_or_random(fable_id: int | None, title: str | None) -> str:
 
 @mcp.tool(name="aesop_read", description="Aesop's fables: tell a fable by number or title, or a random one with no arguments (bedtime story, a story with a moral).")
 def aesop_read(fable_id: int | None = None, title: str | None = None) -> str:
-    return _run(_read_or_random, fable_id, title)
+    return _read_or_random(fable_id, title)
 
 
 @mcp.tool(name="aesop_search", description="Aesop's fables: find fables about an animal, theme or lesson, e.g. 'a fable about greed'.")
 def aesop_search(query: str, limit: int = 3) -> str:
-    return _run(_search_impl, query, limit)
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)
+    return _search_impl(query, limit)

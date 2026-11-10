@@ -1,6 +1,7 @@
 import json,subprocess,sys,os,time
 os.environ['BOOKMARKS_FILE']='/data/bookmarks/smoke-test.json'  # tests never touch the real bookmarks.json
 os.environ['MEMORY_BANK']='stackchan-smoke'  # tests never touch Mo's real memory bank
+os.environ['STACKCHAN_WARM']='memory' if sys.argv[2:3] and sys.argv[2].startswith('learn_') else 'none'  # one call per process: skip startup dataset checks; learn_* still gets the Hindsight check and bank creation
 HEAD='';EXPECT=None
 if sys.argv[1]=='hindsight':  # test helpers for the smoke bank only: reset (delete the bank) / wait (Hindsight up + nothing pending) / wait-reflect
   import httpx;B=os.environ['HINDSIGHT_URL'].rstrip('/');A=B+'/v1/default/banks/'+os.environ['MEMORY_BANK'];t0=time.time();ok=False
@@ -30,7 +31,7 @@ if sys.argv[1]=='bookmarks':  # pipe-served tools: same bookmarks module as mcp_
   sys.path.insert(0,'/app');import bookmarks;t0=time.time();a=json.loads(sys.argv[3] if len(sys.argv)>3 else '{}')
   try:
     if sys.argv[2]=='bookmark_continue':
-      _,srv,tool,targs,HEAD=bookmarks.plan_continue(a.get('book'));sys.argv=[sys.argv[0],srv,tool,json.dumps(targs)]
+      _,tool,targs,HEAD=bookmarks.plan_continue(a.get('book'));sys.argv=[sys.argv[0],'stackchan',tool,json.dumps(targs)]
     else:
       txt=bookmarks.handle(sys.argv[2],a);print(txt);print(f"--- {len(txt.encode())}B {time.time()-t0:.1f}s err=False");sys.exit()
   except (ValueError,KeyError,RuntimeError) as e:

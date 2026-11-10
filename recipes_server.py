@@ -9,11 +9,10 @@ import time
 import urllib.parse
 
 import httpx
-from fastmcp import FastMCP
+from app import mcp
 
 from mcp_tool_log import get_logger, logged, note
 
-mcp = FastMCP("Recipes")
 log = get_logger("RECIPES")
 
 BASE = "https://www.themealdb.com/api/json/v1/1/"
@@ -200,7 +199,3 @@ def recipe_ingredients(recipe: str) -> str:
         raise RuntimeError(f"recipe {m['idMeal']} has no ingredients listed")
     note(m["idMeal"])
     return f"To buy for {m['strMeal']} ({len(ing)} items): " + "; ".join(ing) + "."
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)

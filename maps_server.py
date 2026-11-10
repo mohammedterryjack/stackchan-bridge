@@ -7,7 +7,7 @@ import time
 from collections import OrderedDict
 
 import httpx
-from fastmcp import FastMCP
+from app import mcp
 
 NOMINATIM = "https://nominatim.openstreetmap.org"
 OSRM = "https://router.project-osrm.org/route/v1/driving/{a};{b}"
@@ -26,7 +26,6 @@ ALIASES = {"coffee": "cafe", "masjid": "mosque", "chemist": "pharmacy", "petrol"
            "railway station": "station", "toilet": "toilets", "shop": "supermarket"}
 RADIUS_KM = 3.0
 
-mcp = FastMCP("Maps")
 _nom_lock = threading.Lock()
 _nom_last = 0.0
 _cache_lock = threading.Lock()
@@ -154,7 +153,3 @@ def map_distance(origin: str, destination: str) -> str:
     t = f"{mins} minutes" if mins < 60 else f"{mins // 60} hours {mins % 60} minutes"
     return (f"From {_short(a)} to {_short(b)}: {_dist_words(rt['distance'] / 1000)} by road, "
             f"about {t} driving without traffic. Straight line {_dist_words(straight)}.")
-
-
-if __name__ == "__main__":
-    mcp.run()

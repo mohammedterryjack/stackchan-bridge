@@ -1,26 +1,20 @@
 """Hilyat al-Awliya MCP: Abu Nu'aym al-Isfahani's Hilyat al-Awliya wa Tabaqat al-Asfiya, original Arabic, from
-hf://datasets/MTerryJack/hilyat-al-awliya (OpenITI-derived, CC BY-NC-SA 4.0; DuckDB in memory, no downloads kept).
+hf://datasets/MTerryJack/hilyat-al-awliya (OpenITI-derived, CC BY-NC-SA 4.0; read on demand, nothing kept in RAM).
 Tools: hilya_people, hilya_read, hilya_search. Each call logs one stderr line via mcp_tool_log;
-a failed dataset load exits at startup."""
+an unreachable dataset fails the call aloud."""
 
 from __future__ import annotations
 
-import contextvars
 import re
-import sys
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
-import duckdb
-from fastmcp import FastMCP
+from app import mcp
+from hf_data import HFTable
 
 import bookmarks
 
-from mcp_tool_log import get_logger, hf_revision, logged, note
+from mcp_tool_log import get_logger, logged, note
 
 REPO = "MTerryJack/hilyat-al-awliya"
-CALL_TIMEOUT_S = 8.0
 MAX_LIMIT = 5
 PEOPLE_PAGE = 40
 SNIPPET_CHARS = 180
@@ -65,43 +59,17 @@ EN_AR = {
 }
 
 log = get_logger("HILYA")
-mcp = FastMCP("HilyatAlAwliya")
-_lock = threading.Lock()
-_con: duckdb.DuckDBPyConnection | None = None
-_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="hilya")
 
 
-def _load() -> None:
-    global _con
-    t0 = time.monotonic()
-    rev = hf_revision(REPO)
-    url = f"hf://datasets/{REPO}@{rev}/data/train.parquet"
-    con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
-    con.execute("LOAD httpfs")
-    con.execute("CREATE TABLE t AS SELECT id, volume, number, name_ar, section_ar, part, text_ar, "
-                + NORM_SQL.format(c="text_ar") + " AS nt, " + NORM_SQL.format(c="name_ar") + f" AS nn FROM read_parquet('{url}')")
-    rows, ents = con.execute("SELECT count(*), count(DISTINCT number) FROM t").fetchone()
+def _check(q) -> None:
+    rows, ents = q("SELECT count(*), count(DISTINCT number) FROM t")[0]
     if ents < MIN_ENTRIES:
-        raise RuntimeError(f"{url} has only {ents} entries (expected >= {MIN_ENTRIES})")
-    with _lock:
-        _con = con
-    log.info(f"loaded {REPO}@{rev[:12]} rows={rows} entries={ents} ms={(time.monotonic() - t0) * 1000:.0f}")
+        raise RuntimeError(f"{REPO} has only {ents} entries (expected >= {MIN_ENTRIES})")
+    log.info(f"{REPO} rows={rows} entries={ents}")
 
 
-def _q(sql: str, params: list) -> list:
-    with _lock:
-        if _con is None:
-            raise RuntimeError("Hilyat al-Awliya dataset not loaded")
-        return _con.execute(sql, params).fetchall()
-
-
-def _run(fn, *args):
-    fut = _pool.submit(contextvars.copy_context().run, fn, *args)
-    try:
-        return fut.result(timeout=CALL_TIMEOUT_S)
-    except FuturesTimeout:
-        fut.cancel()
-        raise TimeoutError(f"hilya tool exceeded {CALL_TIMEOUT_S:.0f}s") from None
+_q = HFTable(REPO, "Hilyat al-Awliya", {"t": lambda src, cols: "SELECT id, volume, number, name_ar, section_ar, part, text_ar, "
+             + NORM_SQL.format(c="text_ar") + " AS nt, " + NORM_SQL.format(c="name_ar") + " AS nn FROM " + src}, on_ready=_check).q
 
 
 def _norm(s: str) -> str:
@@ -223,24 +191,16 @@ def _read_or_random(person: str | None, part: int) -> str:
 @mcp.tool(name="hilya_people", description=f"{A} list the people (about 670), optionally filtered by name, e.g. Hasan al-Basri.")
 @logged(log)
 def hilya_people(query: str | None = None, page: int = 1) -> str:
-    return _run(_people_impl, query, page)
+    return _people_impl(query, page)
 
 
 @mcp.tool(name="hilya_read", description=f"{A} read a person's biography and sayings by entry number or name, in parts, or a random passage with no person.")
 @logged(log)
 def hilya_read(person: str | None = None, part: int = 1) -> str:
-    return _run(_read_or_random, person, part)
+    return _read_or_random(person, part)
 
 
 @mcp.tool(name="hilya_search", description=f"{A} find what the early saints said about a topic (zuhd, patience, repentance) or passages about a person.")
 @logged(log)
 def hilya_search(query: str, limit: int = 3) -> str:
-    return _run(_search_impl, query, limit)
-
-if __name__ == "__main__":
-    try:
-        _load()
-    except BaseException as e:
-        log.critical(f"startup failed: dataset {REPO} did not load: {type(e).__name__}: {e}")
-        sys.exit(1)
-    mcp.run(transport="stdio", show_banner=False)
+    return _search_impl(query, limit)

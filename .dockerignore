@@ -1,0 +1,7 @@
+.git
+.env
+*.env
+*.bak*
+__pycache__/
+*.bundle
+*.log

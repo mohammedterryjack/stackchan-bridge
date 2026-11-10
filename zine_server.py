@@ -1,77 +1,19 @@
-"""Hacker-zine search MCP: DuckDB over hf://datasets/MTerryJack/hacker-zines."""
+"""Hacker-zine search MCP: on-demand reads of hf://datasets/MTerryJack/hacker-zines."""
 from __future__ import annotations
 
 import re
-from typing import Literal
-import threading
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
-import duckdb
-from fastmcp import FastMCP
+from app import mcp
+from hf_data import HFTable
 
 import bookmarks
 
-DATASET_PARQUET = "hf://datasets/MTerryJack/hacker-zines/data/train.parquet"
 ALLOWED_ZINES = frozenset({"phrack", "pocorgtfo", "tmpout"})
 MAX_LIMIT = 5
 SNIPPET_CHARS = 80
 READ_CHARS = 3000
-CALL_TIMEOUT_S = 8.0
-LOAD_TIMEOUT_S = 60.0
 
-mcp = FastMCP("Zines")
-
-_lock = threading.Lock()
-_con: duckdb.DuckDBPyConnection | None = None
-_ready = threading.Event()
-_load_error: BaseException | None = None
-_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="zine")
-
-
-def _load() -> None:
-    global _con, _load_error
-    try:
-        con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
-        con.execute("LOAD httpfs")
-        con.execute(
-            f"CREATE TABLE zines AS SELECT * FROM read_parquet('{DATASET_PARQUET}')"
-        )
-        n = con.execute("SELECT count(*) FROM zines").fetchone()[0]
-        if n < 1:
-            raise RuntimeError(f"Loaded 0 rows from {DATASET_PARQUET}")
-        with _lock:
-            _con = con
-    except BaseException as e:
-        _load_error = e
-    finally:
-        _ready.set()
-
-
-threading.Thread(target=_load, name="zine-load", daemon=True).start()
-
-
-def _conn() -> duckdb.DuckDBPyConnection:
-    if not _ready.wait(timeout=LOAD_TIMEOUT_S):
-        raise RuntimeError(
-            f"DuckDB hf:// load still running after {LOAD_TIMEOUT_S:.0f}s"
-        )
-    if _load_error is not None:
-        raise RuntimeError(f"DuckDB hf:// load failed: {_load_error}") from _load_error
-    with _lock:
-        if _con is None:
-            raise RuntimeError("DuckDB connection missing after successful load")
-        return _con
-
-
-def _run(fn, *args):
-    fut = _pool.submit(fn, *args)
-    try:
-        return fut.result(timeout=CALL_TIMEOUT_S)
-    except FuturesTimeout:
-        fut.cancel()
-        raise TimeoutError(
-            f"zine tool exceeded {CALL_TIMEOUT_S:.0f}s hard timeout"
-        ) from None
+_q = HFTable("MTerryJack/hacker-zines", "hacker zines", {"zines": "SELECT * FROM {src}"}).q
 
 
 def _snippet(text: str, query: str) -> str:
@@ -97,7 +39,6 @@ def _snippet(text: str, query: str) -> str:
 
 
 def _search_impl(query: str, zine: str | None, limit: int) -> str:
-    con = _conn()
     q = query.strip()
     if not q:
         raise ValueError("query must be non-empty")
@@ -123,8 +64,7 @@ def _search_impl(query: str, zine: str | None, limit: int) -> str:
     sql += "LIMIT ?"
     params.append(limit)
 
-    with _lock:
-        rows = con.execute(sql, params).fetchall()
+    rows = _q(sql, params)
 
     if not rows:
         scope = f" in {z}" if z else ""
@@ -142,25 +82,22 @@ def _search_impl(query: str, zine: str | None, limit: int) -> str:
 
 
 def _read_impl(chunk_id: str) -> str:
-    con = _conn()
     cid = chunk_id.strip()
     if not cid:
         raise ValueError("id must be non-empty")
-    with _lock:
-        row = con.execute(
-            "SELECT id, zine, issue, article, title, author, chunk_idx, text, source_url "
-            "FROM zines WHERE id = ?",
-            [cid],
-        ).fetchone()
+    row = next(iter(_q(
+        "SELECT id, zine, issue, article, title, author, chunk_idx, text, source_url "
+        "FROM zines WHERE id = ?",
+        [cid],
+    )), None)
     if row is None:
         raise LookupError(f"unknown id: {cid}")
     rid, zin, issue, article, title, author, chunk_idx, text, url = row
-    with _lock:
-        nxt = con.execute(
-            "SELECT id FROM zines WHERE zine = ? AND (issue, article, chunk_idx) > (?, ?, ?) "
-            "ORDER BY issue, article, chunk_idx LIMIT 1",
-            [zin, issue, article, chunk_idx],
-        ).fetchone()
+    nxt = next(iter(_q(
+        "SELECT id FROM zines WHERE zine = ? AND (issue, article, chunk_idx) > (?, ?, ?) "
+        "ORDER BY issue, article, chunk_idx LIMIT 1",
+        [zin, issue, article, chunk_idx],
+    )), None)
     bookmarks.record("zines", f"{title}, section {rid}", {"id": nxt[0]} if nxt else None)
     body = text if len(text) <= READ_CHARS else text[:READ_CHARS] + "…"
     auth = f"\nAuthor: {author}" if author else ""
@@ -196,14 +133,10 @@ def zine_search(
     if zine:
         k = re.sub(r"[^a-z0-9]", "", zine.lower())
         zine = {"phrack": "phrack", "pocorgtfo": "pocorgtfo", "pocgtfo": "pocorgtfo", "tmpout": "tmpout", "tmp0ut": "tmpout"}.get(k, zine)
-    return _run(_search_impl, query, zine, limit)
+    return _search_impl(query, zine, limit)
 
 
 @mcp.tool()
 def zine_read(id: str) -> str:
     """Read one zine section by its id from zine_search."""
-    return _run(_read_impl, id)
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)
+    return _read_impl(id)

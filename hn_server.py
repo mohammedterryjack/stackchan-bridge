@@ -1,12 +1,11 @@
 """Hacker News MCP: Firebase item API + Algolia search. Spoken plain text."""
 from __future__ import annotations
 
-import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import httpx
-from fastmcp import FastMCP
+from app import mcp
 
 FB = "https://hacker-news.firebaseio.com/v0"
 ALGOLIA = "https://hn.algolia.com/api/v1"
@@ -19,8 +18,6 @@ STORY_TYPES = {
     "ask_hn": "askstories",
     "show_hn": "showstories",
 }
-
-mcp = FastMCP("HackerNews")
 
 
 def _client() -> httpx.Client:
@@ -212,7 +209,3 @@ def hn_user(user_name: str, num_stories: int = 5) -> str:
         }
     head = f"{payload['id']}, {payload['karma']} karma." + (f" About: {_plain(payload['about'])}" if payload["about"] else "")
     return "\n".join([head, *(_say(st) for st in stories)])
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)

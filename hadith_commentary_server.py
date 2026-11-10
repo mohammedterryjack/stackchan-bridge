@@ -1,28 +1,22 @@
-"""Hadith commentary MCP: Ibn Abi Jamrah's Bahjat al-Nufus (Arabic) via DuckDB over hf://datasets/MTerryJack/bahjat-al-nufus.
-Every call logs one line to stderr (tool, args, row ids, ms, error) via mcp_tool_log; a failed dataset load exits at startup."""
+"""Hadith commentary MCP: Ibn Abi Jamrah's Bahjat al-Nufus (Arabic) via on-demand reads of hf://datasets/MTerryJack/bahjat-al-nufus.
+Every call logs one line to stderr (tool, args, row ids, ms, error) via mcp_tool_log; if Hugging Face cannot be reached the call fails with a spoken error."""
 from __future__ import annotations
 
-import contextvars
 import math
 import re
-import sys
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
-import duckdb
-from fastmcp import FastMCP
+from app import mcp
+from hf_data import HFTable
 
 import bookmarks
 
-from mcp_tool_log import get_logger, hf_revision, logged, note
+from mcp_tool_log import get_logger, logged, note
 
 REPO = "MTerryJack/bahjat-al-nufus"
 MAX_LIMIT = 5
 HADITH_CHARS = 500
 PAGE_CHARS = 1000
 SNIPPET_CHARS = 160
-CALL_TIMEOUT_S = 8.0
 NOTE = "[Classical Arabic, OCR text: translate or explain it for the listener.]"
 # Arabic normalisation (same in SQL and Python): drop tashkeel/tatweel, unify alif, ya, ta marbuta, hamza seats.
 _DIAC = "[\u064B-\u0652\u0670\u0640]"
@@ -39,53 +33,17 @@ EN_AR = {
 NORM_SQL = "translate(regexp_replace({c}, '" + _DIAC + "', '', 'g'), '" + _FROM + "', '" + _TO + "')"
 
 log = get_logger("HADITH_COMMENTARY")
-mcp = FastMCP("HadithCommentary")
-
-_lock = threading.Lock()
-_con: duckdb.DuckDBPyConnection | None = None
-_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="bahja")
 
 
-def _load() -> None:
-    # ~2MB parquet, 268 rows, pinned to the current HF revision: one in-memory table with a normalised search column.
-    global _con
-    t0 = time.monotonic()
-    rev = hf_revision(REPO)
-    url = f"hf://datasets/{REPO}@{rev}/data/train.parquet"
-    con = duckdb.connect(config={"extension_directory": "/opt/duckdb/extensions"})
-    con.execute("LOAD httpfs")
-    con.execute(
-        "CREATE TABLE bahja AS SELECT hadith_number, covers, bukhari_number, hadith_ar, commentary_ar, volume, alignment_confidence, "
-        + NORM_SQL.format(c="hadith_ar || ' ' || commentary_ar") + f" AS nt FROM read_parquet('{url}')"
-    )
-    n, lo, hi = con.execute("SELECT count(*), min(hadith_number), max(hadith_number) FROM bahja").fetchone()
+def _check(q) -> None:
+    n, lo, hi = q("SELECT count(*), min(hadith_number), max(hadith_number) FROM bahja")[0]
     if n < 1:
-        raise RuntimeError(f"Loaded 0 rows from {url}")
-    with _lock:
-        _con = con
-    log.info(f"loaded {REPO}@{rev[:12]} rows={n} hadith_number={lo}-{hi} ms={(time.monotonic() - t0) * 1000:.0f}")
+        raise RuntimeError(f"{REPO} has 0 rows")
+    log.info(f"{REPO} rows={n} hadith_number={lo}-{hi}")
 
 
-def _conn() -> duckdb.DuckDBPyConnection:
-    with _lock:
-        if _con is None:
-            raise RuntimeError("Bahjat al-Nufus dataset not loaded (server started without _load)")
-        return _con
-
-
-def _run(fn, *args):
-    fut = _pool.submit(contextvars.copy_context().run, fn, *args)
-    try:
-        return fut.result(timeout=CALL_TIMEOUT_S)
-    except FuturesTimeout:
-        fut.cancel()
-        raise TimeoutError(f"bahjat tool exceeded {CALL_TIMEOUT_S:.0f}s") from None
-
-
-def _q(sql: str, params: list) -> list:
-    con = _conn()
-    with _lock:
-        return con.execute(sql, params).fetchall()
+_q = HFTable(REPO, "Bahjat al-Nufus", {"bahja": lambda src, cols: "SELECT hadith_number, covers, bukhari_number, hadith_ar, commentary_ar, volume, alignment_confidence, "
+             + NORM_SQL.format(c="hadith_ar || ' ' || commentary_ar") + " AS nt FROM " + src}, on_ready=_check).q
 
 
 def _norm(s: str) -> str:
@@ -196,18 +154,10 @@ def _read_or_random(hadith_number: int | None, part: int) -> str:
 @mcp.tool(name="bahjat_read", description="Ibn Abi Jamrah's Bahjat al-Nufus (Arabic commentary on Bukhari hadith): read hadith 1-287 with its commentary in parts, or a random one with no number. Translate the Arabic when speaking.")
 @logged(log)
 def bahjat_read(hadith_number: int | None = None, part: int = 1) -> str:
-    return _run(_read_or_random, hadith_number, part)
+    return _read_or_random(hadith_number, part)
 
 
 @mcp.tool(name="bahjat_search", description="Bahjat al-Nufus: find what Ibn Abi Jamrah says about a topic (Arabic or English words, e.g. dreams, intention).")
 @logged(log)
 def bahjat_search(query: str, limit: int = 3) -> str:
-    return _run(_search_impl, query, limit)
-
-if __name__ == "__main__":
-    try:
-        _load()
-    except BaseException as e:
-        log.critical(f"startup failed: dataset {REPO} did not load: {type(e).__name__}: {e}")
-        sys.exit(1)
-    mcp.run(transport="stdio", show_banner=False)
+    return _search_impl(query, limit)

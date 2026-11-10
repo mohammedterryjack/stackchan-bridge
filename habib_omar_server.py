@@ -15,12 +15,11 @@ import urllib.parse
 from datetime import datetime, timezone
 
 import httpx
-from fastmcp import FastMCP
+from app import mcp
 from hijridate import Hijri
 
 from mcp_tool_log import get_logger, logged, note
 
-mcp = FastMCP("HabibOmar")
 log = get_logger("HABIB_OMAR")
 
 UA = "Mozilla/5.0 (compatible; stackchan-habib-omar/2.0)"
@@ -266,7 +265,3 @@ def habib_omar_read(index: int | None = None, url: str | None = None, part: int 
                 if index is not None else f"habib_omar_read(url=..., part={p + 1})")
     head = f"{LABEL}. [{item['source']}" + (f", {item['date']}" if item.get("date") else "") + f"] {item['title']}. Part {p} of {len(parts)}:"
     return "\n".join([head, parts[p - 1], f"Next: {more}"])
-
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio", show_banner=False)

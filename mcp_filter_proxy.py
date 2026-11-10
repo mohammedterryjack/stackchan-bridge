@@ -56,12 +56,6 @@ def _patch_tool(tool: dict, cfg: dict) -> dict | None:
         prop = dict(props[k])
         prop["maximum"] = mx
         props[k] = prop
-    # optional: make params optional
-    for k in (cfg.get("optional_params") or {}).get(name) or []:
-        req = list(schema.get("required") or [])
-        if k in req:
-            req.remove(k)
-            schema["required"] = req
     for up_k, pub_k in ((cfg.get("arg_rename") or {}).get(name) or {}).items():
         if up_k not in props:
             raise RuntimeError(f"arg_rename: {name} has no param {up_k!r}")
@@ -193,30 +187,10 @@ def _prepare_args(name: str, arguments: dict | None, cfg: dict) -> dict:
                 if "exceeds maximum" in str(e):
                     raise
                 raise ValueError(f"{name}.{k} must be an integer <= {mx}") from e
-    forbidden = (cfg.get("forbid_true") or {}).get(name) or []
-    for k in forbidden:
-        if args.get(k) is True:
-            raise ValueError(f"{name}.{k}=true is not allowed")
     drop = (cfg.get("drop_params") or {}).get(name) or []
     for k in drop:
         args.pop(k, None)
     return args
-
-
-def _reader(src, dst, transform):
-    for line in src:
-        if not line:
-            break
-        try:
-            msg = json.loads(line)
-        except json.JSONDecodeError:
-            # fail loudly on non-JSON from child
-            raise RuntimeError(f"child sent non-JSON line: {line[:200]!r}")
-        out = transform(msg)
-        if out is None:
-            continue
-        dst.write(json.dumps(out, ensure_ascii=False) + "\n")
-        dst.flush()
 
 
 def main() -> None:
@@ -237,7 +211,7 @@ def main() -> None:
     pending_calls: dict[Any, str] = {}
     pending_started: dict[Any, float] = {}
     pending_args: dict[Any, dict] = {}
-    deadline_s = float(os.environ.get("MCP_TOOL_DEADLINE_S", cfg.get("deadline_s", 8)))
+    deadline_s = float(os.environ["MCP_TOOL_DEADLINE_S"])
     deadline_lock = threading.Lock()
 
     def from_client(msg: dict) -> dict | None:
@@ -317,7 +291,7 @@ def main() -> None:
             out = dict(msg)
             out["result"] = result
             return out
-        # truncate oversized tool results when configured
+        # format tool results (youtube info) and clear deadline tracking
         mid = msg.get("id")
         tool_name = None
         if mid is not None:
@@ -355,23 +329,6 @@ def main() -> None:
                 c4.append(c)
             r4["content"] = c4
             msg = dict(msg); msg["result"] = r4
-        trunc_map = cfg.get("truncate_result_chars") or {}
-        if tool_name and tool_name in trunc_map and "result" in msg:
-            limit = int(trunc_map[tool_name])
-            result = msg["result"]
-            if isinstance(result, dict) and "content" in result:
-                content = []
-                for part in result.get("content") or []:
-                    part = dict(part)
-                    if part.get("type") == "text" and isinstance(part.get("text"), str):
-                        if len(part["text"]) > limit:
-                            part["text"] = part["text"][:limit] + f"\n…[truncated to {limit} chars]"
-                    content.append(part)
-                result = dict(result)
-                result["content"] = content
-                out = dict(msg)
-                out["result"] = result
-                return out
         return msg
 
     def client_to_child():
