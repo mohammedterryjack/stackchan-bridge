@@ -89,6 +89,20 @@ def _check_llm() -> None:
         log.error(_llm_problem)
 
 
+def _pin_embeddings() -> None:
+    """Hindsight embeds every recall query with a small model on Ollama, which unloads idle models after 5 minutes;
+    loading it again takes ~3 s (more while the 7B is busy), enough to time a recall out. One native call with
+    keep_alive=-1 keeps it resident until Ollama restarts."""
+    model = os.environ["OLLAMA_EMBED_MODEL"]
+    try:
+        r = httpx.post(os.environ["OLLAMA_URL"].rstrip("/") + "/api/embed", json={"model": model, "input": "warm", "keep_alive": -1},
+                       timeout=httpx.Timeout(60, connect=3))
+        r.raise_for_status()
+        log.info(f"Ollama embedding model {model} pinned in memory")
+    except httpx.HTTPError as e:
+        log.error(f"could not load Hindsight's embedding model {model} in Ollama ({type(e).__name__}: {e}); learn_recall will be slow or fail")
+
+
 def _pending() -> int:
     """Queued + in-progress learning, straight from the operations table (not the cached bank stats)."""
     return sum(int(_req("GET", "/operations", params={"status": st, "type": "retain", "limit": 1}).get("total") or 0)
@@ -338,6 +352,7 @@ def startup() -> None:
         _req("PUT", "", json={})
         log.info(f"created memory bank {BANK}")
     log.info(f"Hindsight OK, bank={BANK}")
+    _pin_embeddings()
     try:  # reflection jobs live beside the bookmarks
         _locked(lambda jobs: (True, None))
     except OSError as e:

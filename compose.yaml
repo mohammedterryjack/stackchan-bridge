@@ -1,3 +1,6 @@
+# Hindsight's embedding model, served by Ollama on 192.168.1.215 (see the hindsight service).
+x-embed-model: &embed_model hf.co/CompendiumLabs/bge-small-en-v1.5-gguf:F16
+
 services:
   stackchan-bridge:
     build:
@@ -10,6 +13,10 @@ services:
     tmpfs: ["/tmp", "/home/bridge:uid=1000,gid=1000"]
     environment:
       HINDSIGHT_URL: http://hindsight:8888
+      # memory_server pins Hindsight's embedding model in Ollama at startup (keep_alive forever) so a recall
+      # after an idle spell never waits for Ollama to load it.
+      OLLAMA_URL: http://192.168.1.215:11434
+      OLLAMA_EMBED_MODEL: *embed_model
       MEMORY_BANK: mo
     volumes:
       - bookmarks:/data/bookmarks
@@ -22,11 +29,16 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Live-learning memory (Hindsight). Embeddings + reranker are baked into the image;
+  # Live-learning memory (Hindsight), slim image: no PyTorch or local models in the container.
+  # Embeddings are BAAI/bge-small-en-v1.5 served by Ollama on 192.168.1.215 (GGUF F16, the same model the
+  # full image ran locally: vectors match it at cosine 1.0, so existing memories stay valid). There is no
+  # cross-encoder reranker: recall orders results by reciprocal rank fusion (rrf) of its semantic, keyword,
+  # graph and time searches. To go back to the in-container models, use image ghcr.io/vectorize-io/hindsight:1.2.0
+  # and drop the EMBEDDINGS_*/RERANKER_* lines.
   # the LLM is Mo's native Metal Ollama on the host, sharing the qwen2.5-coder:7b
   # that is already resident (num_ctx 8192 matches it, so nothing gets evicted or reloaded). Memories live in the named volume.
   hindsight:
-    image: ghcr.io/vectorize-io/hindsight:1.2.0
+    image: ghcr.io/vectorize-io/hindsight:1.2.0-slim
     container_name: stackchan-hindsight
     restart: unless-stopped
     shm_size: 1g
@@ -55,6 +67,11 @@ services:
       HINDSIGHT_API_REFLECT_MAX_COMPLETION_TOKENS: "1024"
       HINDSIGHT_API_BANK_STATS_CACHE_TTL_SECONDS: "0"
       HF_HUB_OFFLINE: "1"
+      HINDSIGHT_API_EMBEDDINGS_PROVIDER: openai
+      HINDSIGHT_API_EMBEDDINGS_OPENAI_BASE_URL: http://192.168.1.215:11434/v1
+      HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL: *embed_model
+      HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY: ollama  # placeholder: Ollama has no keys, Hindsight requires a value
+      HINDSIGHT_API_RERANKER_PROVIDER: rrf
     volumes:
       - hindsight-data:/home/hindsight/.pg0
     ports:
