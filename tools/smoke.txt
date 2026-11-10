@@ -2,9 +2,7 @@
 stackchan|calculator|{"python_expression":"2+3*4"}
 stackchan|time_now|{"timezone":"Europe/London"}
 stackchan|hn_top_stories|{"num_stories":2}
-youtube|youtube_info|{"video":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
 stackchan|news_headlines|{"limit":2}
-arxiv|arxiv_search|{"query":"robot","max_results":2}
 stackchan|zine_search|{"query":"hacking","limit":2}
 stackchan|youtube_search|{"query":"stack-chan","limit":2}
 stackchan|quran_read|{"surah":"1","ayah":"1"}

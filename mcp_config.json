@@ -11,39 +11,6 @@
         "MCP_TOOL_DEADLINE_S": "8",
         "PYTHONUNBUFFERED": "1"
       }
-    },
-    "youtube": {
-      "type": "stdio",
-      "command": "python",
-      "args": [
-        "/app/mcp_filter_proxy.py",
-        "mcp-youtube-transcript",
-        "--response-limit",
-        "1200"
-      ],
-      "env": {
-        "FASTMCP_SHOW_SERVER_BANNER": "false",
-        "MCP_TOOL_DEADLINE_S": "8",
-        "PYTHONUNBUFFERED": "1",
-        "FILTER_PROXY_CONFIG": "/app/filter_configs/youtube.json"
-      }
-    },
-    "arxiv": {
-      "type": "stdio",
-      "command": "python",
-      "args": [
-        "/app/mcp_filter_proxy.py",
-        "/opt/arxiv/bin/arxiv-mcp-server",
-        "--storage-path",
-        "/home/bridge/arxiv-papers"
-      ],
-      "env": {
-        "FILTER_PROXY_CONFIG": "/app/filter_configs/arxiv.json",
-        "MAX_RESULTS": "10",
-        "FASTMCP_SHOW_SERVER_BANNER": "false",
-        "PYTHONUNBUFFERED": "1",
-        "MCP_TOOL_DEADLINE_S": "8"
-      }
     }
   }
 }
