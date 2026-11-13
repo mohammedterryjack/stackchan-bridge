@@ -116,22 +116,6 @@ bookmarks|bookmark_set|{"book":"Tanakh","position":"Genesis 3:4"}
 bookmarks|bookmark_continue|{"book":"Tanakh","_expect":"Genesis 3:4"}
 bookmarks|bookmark_continue|{"book":"Tanakh","_expect":"Genesis 3:"}
 bookmarks|bookmark_clear|{"book":"tanakh"}
-# memory (Hindsight; smoke bank stackchan-smoke, Mo's bank untouched): learn, recall, survive restarts of bridge and hindsight
-hindsight|reset|{}
-stackchan|learn_status|{}
-stackchan|learn_recall|{"topic":"What is my favourite Japanese snack?","_expect":"haven't learnt"}
-stackchan|learn_this|{"fact":"My favourite Japanese snack is matcha Kit Kat."}
-hindsight|wait|{"max_s":300}
-stackchan|learn_recall|{"topic":"What is my favourite Japanese snack?","_expect":"Kit Kat"}
-stackchan|learn_status|{}
-!restart|stackchan-hindsight|
-hindsight|wait|{"max_s":180}
-!restart||
-stackchan|learn_recall|{"topic":"Japanese snack","_expect":"Kit Kat"}
-# memory reflection (background): start one on the smoke bank and check the status reply; make test-reflect waits for completion
-stackchan|learn_reflection|{"question":"never asked xyz","_expect":"haven't been asked"}
-stackchan|learn_reflect|{"question":"What snack should I bring Mo as a gift?","_expect":"thinking about"}
-stackchan|learn_reflection|{"question":"snack","_expect":"snack"}
 stackchan|rumi_read|{}
 stackchan|aesop_read|{}
 stackchan|hadith_get|{}

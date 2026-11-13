@@ -6,7 +6,7 @@ COMPOSE := docker compose
 PLACEHOLDER := your-xiaozhi-mcp-endpoint-goes-here
 SMOKE ?= tools/smoke.txt
 
-.PHONY: help check env build up setup run logs test test-reflect test-web stop restart
+.PHONY: help check env build up setup run logs test test-web stop restart
 
 help:
 	@echo "make setup    check tools, check .env, build and start the bridge"
@@ -14,7 +14,6 @@ help:
 	@echo "make logs     follow bridge logs"
 	@echo "make test     call tools from every module inside the running bridge"
 	@echo "make test-web  opt-in: one DuckDuckGo web search (kept out of make test so it never trips their bot check)"
-	@echo "make test-reflect  opt-in: run one memory reflection to completion on the smoke bank (minutes)"
 	@echo "make stop     stop the bridge"
 	@echo "make restart  restart the bridge"
 
@@ -32,7 +31,7 @@ build: check env
 	$(COMPOSE) build stackchan-bridge
 
 up: check env
-	$(COMPOSE) up -d --build --no-deps hindsight stackchan-bridge
+	$(COMPOSE) up -d --build --no-deps stackchan-bridge
 
 setup run: up
 	@echo "Bridge started as $(CONTAINER). Check with: make logs  /  make test"
@@ -43,8 +42,6 @@ logs:
 test:
 	@fail=0; while IFS='|' read -r srv tool args; do [ -z "$$srv" ] || [ "$${srv:0:1}" = "#" ] && continue; if [ "$$srv" = "!restart" ]; then c=$${tool:-$(CONTAINER)}; if docker restart $$c >/dev/null; then echo "PASS restart $$c (saved state must survive it)"; else echo "FAIL restart $$c"; fail=1; fi; continue; fi; out=$$(docker exec -i $(CONTAINER) python - "$$srv" "$$tool" "$$args" < tools/sc_t.py 2>&1); last=$$(tail -1 <<<"$$out"); if grep -q 'err=False' <<<"$$last"; then echo "PASS $$srv/$$tool $$last"; else echo "FAIL $$srv/$$tool $$last"; fail=1; fi; done < $(SMOKE); exit $$fail
 
-test-reflect:
-	@$(MAKE) --no-print-directory test SMOKE=tools/smoke-reflect.txt
 
 test-web:
 	@$(MAKE) --no-print-directory test SMOKE=tools/smoke-web.txt

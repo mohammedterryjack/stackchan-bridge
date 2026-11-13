@@ -3,7 +3,6 @@ Starts each mcp_config server, asks tools/list, applies the pipe's slimming (and
 prints bytes per server and per tool; --json prints one sorted JSON line per tool instead (for diffing)."""
 import json, os, subprocess, sys
 sys.path.insert(0, "/app")
-os.environ["MEMORY_BANK"] = "stackchan-smoke"
 os.environ["STACKCHAN_WARM"] = "none"
 import mcp_pipe
 cfg = json.load(open("/app/mcp_config.json"))["mcpServers"]
